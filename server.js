@@ -88,3 +88,6 @@ app.delete("/items/:id", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+app.get("/", (req, res) => {
+  res.send("API running! Use /items");
+});
