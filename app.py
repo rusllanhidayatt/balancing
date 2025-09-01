@@ -3,7 +3,9 @@ import json
 import os
 from datetime import datetime
 from collections import defaultdict
+from flask import Flask, request, jsonify
 
+app = Flask(__name__)
 DATA_FILE = "transactions.json"
 
 
@@ -23,176 +25,107 @@ def save_data(data):
         json.dump(data, f, indent=4)
 
 
-def get_valid_int(prompt):
-    while True:
-        value = input(prompt)
-        if value.isdigit():
-            return int(value)
-        print("Input harus berupa angka!")
+@app.route("/transactions", methods=["GET"])
+def view_transactions():
+    return jsonify(load_data())
 
 
+@app.route("/transactions", methods=["POST"])
 def add_transaction():
-    tanggal = input("Masukkan tanggal (YYYY-MM-DD, kosongkan untuk hari ini): ").strip()
-    if not tanggal:
-        tanggal = datetime.now().strftime("%Y-%m-%d")
-    keterangan = input("Masukkan keterangan: ").strip()
-    tipe = ""
-    while tipe not in ["masuk", "keluar"]:
-        tipe = input("Tipe transaksi (masuk/keluar): ").strip().lower()
-    jumlah = get_valid_int("Masukkan jumlah: ")
-
     data = load_data()
+    body = request.json
+    tanggal = body.get("tanggal", datetime.now().strftime("%Y-%m-%d"))
     new_entry = {
         "id": len(data) + 1,
         "tanggal": tanggal,
-        "keterangan": keterangan,
-        "tipe": tipe,
-        "jumlah": jumlah,
+        "keterangan": body.get("keterangan", ""),
+        "tipe": body.get("tipe", "masuk"),
+        "jumlah": int(body.get("jumlah", 0)),
     }
     data.append(new_entry)
     save_data(data)
-    print("Transaksi berhasil ditambahkan!")
+    return jsonify(new_entry), 201
 
 
-def view_transactions():
+@app.route("/transactions/<int:entry_id>", methods=["PUT"])
+def update_transaction(entry_id):
     data = load_data()
-    if not data:
-        print("Belum ada transaksi.")
-        return
     for entry in data:
-        print(
-            f"ID: {entry['id']} | {entry['tanggal']} | {entry['keterangan']} | {entry['tipe']} | Rp{entry['jumlah']}"
-        )
+        if entry["id"] == entry_id:
+            body = request.json
+            if "keterangan" in body:
+                entry["keterangan"] = body["keterangan"]
+            if "tipe" in body and body["tipe"] in ["masuk", "keluar"]:
+                entry["tipe"] = body["tipe"]
+            if "jumlah" in body:
+                entry["jumlah"] = int(body["jumlah"])
+            save_data(data)
+            return jsonify(entry)
+    return jsonify({"error": "ID tidak ditemukan"}), 404
 
 
+@app.route("/transactions/<int:entry_id>", methods=["DELETE"])
+def delete_transaction(entry_id):
+    data = load_data()
+    new_data = [entry for entry in data if entry["id"] != entry_id]
+    if len(new_data) == len(data):
+        return jsonify({"error": "ID tidak ditemukan"}), 404
+    save_data(new_data)
+    return jsonify({"message": "Transaksi berhasil dihapus"})
+
+
+@app.route("/balance", methods=["GET"])
 def calculate_balance():
     data = load_data()
     total_masuk = sum(e["jumlah"] for e in data if e["tipe"] == "masuk")
     total_keluar = sum(e["jumlah"] for e in data if e["tipe"] == "keluar")
     saldo = total_masuk - total_keluar
-    print(f"Total Masuk : Rp{total_masuk}")
-    print(f"Total Keluar: Rp{total_keluar}")
-    print(f"Saldo Akhir : Rp{saldo}")
+    return jsonify(
+        {"total_masuk": total_masuk, "total_keluar": total_keluar, "saldo": saldo}
+    )
 
 
-def update_transaction():
-    data = load_data()
-    entry_id = get_valid_int("Masukkan ID transaksi yang mau diupdate: ")
-    for entry in data:
-        if entry["id"] == entry_id:
-            new_keterangan = input("Keterangan baru (kosongkan untuk tidak diubah): ").strip()
-            new_tipe = input("Tipe baru (masuk/keluar, kosongkan untuk tidak diubah): ").strip().lower()
-            new_jumlah = input("Jumlah baru (kosongkan untuk tidak diubah): ").strip()
-
-            if new_keterangan:
-                entry["keterangan"] = new_keterangan
-            if new_tipe in ["masuk", "keluar"]:
-                entry["tipe"] = new_tipe
-            if new_jumlah:
-                if new_jumlah.isdigit():
-                    entry["jumlah"] = int(new_jumlah)
-                else:
-                    print("Jumlah tidak valid, tetap menggunakan nilai lama.")
-
-            save_data(data)
-            print("Transaksi berhasil diupdate!")
-            return
-    print("ID tidak ditemukan.")
-
-
-def delete_transaction():
-    data = load_data()
-    entry_id = get_valid_int("Masukkan ID transaksi yang mau dihapus: ")
-    new_data = [entry for entry in data if entry["id"] != entry_id]
-    if len(new_data) != len(data):
-        save_data(new_data)
-        print("Transaksi berhasil dihapus!")
-    else:
-        print("ID tidak ditemukan.")
-
-
+@app.route("/transactions/filter", methods=["GET"])
 def filter_transactions_by_date():
     data = load_data()
-    if not data:
-        print("Belum ada transaksi.")
-        return
-
-    start_date = input("Masukkan tanggal awal (YYYY-MM-DD): ").strip()
-    end_date = input("Masukkan tanggal akhir (YYYY-MM-DD): ").strip()
-
+    start_date = request.args.get("start")
+    end_date = request.args.get("end")
     try:
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    except ValueError:
-        print("Format tanggal salah!")
-        return
+    except Exception:
+        return jsonify({"error": "Format tanggal salah! Gunakan YYYY-MM-DD"}), 400
 
     filtered = [
-        entry for entry in data if start_dt <= datetime.strptime(entry["tanggal"], "%Y-%m-%d") <= end_dt
+        entry
+        for entry in data
+        if start_dt <= datetime.strptime(entry["tanggal"], "%Y-%m-%d") <= end_dt
     ]
-
-    if not filtered:
-        print("Tidak ada transaksi pada rentang tanggal tersebut.")
-        return
-
-    for entry in filtered:
-        print(
-            f"ID: {entry['id']} | {entry['tanggal']} | {entry['keterangan']} | {entry['tipe']} | Rp{entry['jumlah']}"
-        )
+    return jsonify(filtered)
 
 
+@app.route("/report/monthly", methods=["GET"])
 def monthly_report():
     data = load_data()
-    if not data:
-        print("Belum ada transaksi.")
-        return
-
     report = defaultdict(lambda: {"masuk": 0, "keluar": 0})
     for entry in data:
         bulan = datetime.strptime(entry["tanggal"], "%Y-%m-%d").strftime("%Y-%m")
         report[bulan][entry["tipe"]] += entry["jumlah"]
 
+    result = []
     for bulan, totals in sorted(report.items()):
         saldo = totals["masuk"] - totals["keluar"]
-        print(
-            f"Bulan: {bulan} | Masuk: Rp{totals['masuk']} | Keluar: Rp{totals['keluar']} | Saldo: Rp{saldo}"
+        result.append(
+            {
+                "bulan": bulan,
+                "masuk": totals["masuk"],
+                "keluar": totals["keluar"],
+                "saldo": saldo,
+            }
         )
-
-
-def main():
-    init_data_file()
-    while True:
-        print("\nMenu:")
-        print("1. Tambah Transaksi")
-        print("2. Lihat Semua Transaksi")
-        print("3. Lihat Saldo")
-        print("4. Update Transaksi")
-        print("5. Hapus Transaksi")
-        print("6. Filter Transaksi Berdasarkan Tanggal")
-        print("7. Laporan Bulanan")
-        print("8. Keluar")
-        choice = input("Pilih menu: ").strip()
-
-        if choice == "1":
-            add_transaction()
-        elif choice == "2":
-            view_transactions()
-        elif choice == "3":
-            calculate_balance()
-        elif choice == "4":
-            update_transaction()
-        elif choice == "5":
-            delete_transaction()
-        elif choice == "6":
-            filter_transactions_by_date()
-        elif choice == "7":
-            monthly_report()
-        elif choice == "8":
-            print("Keluar...")
-            break
-        else:
-            print("Pilihan tidak valid!")
+    return jsonify(result)
 
 
 if __name__ == "__main__":
-    main()
+    init_data_file()
+    app.run(host="0.0.0.0", port=5000)
