@@ -2,6 +2,7 @@
 import json
 import os
 from datetime import datetime
+from collections import defaultdict
 
 DATA_FILE = "transactions.json"
 
@@ -140,6 +141,24 @@ def filter_transactions_by_date():
         )
 
 
+def monthly_report():
+    data = load_data()
+    if not data:
+        print("Belum ada transaksi.")
+        return
+
+    report = defaultdict(lambda: {"masuk": 0, "keluar": 0})
+    for entry in data:
+        bulan = datetime.strptime(entry["tanggal"], "%Y-%m-%d").strftime("%Y-%m")
+        report[bulan][entry["tipe"]] += entry["jumlah"]
+
+    for bulan, totals in sorted(report.items()):
+        saldo = totals["masuk"] - totals["keluar"]
+        print(
+            f"Bulan: {bulan} | Masuk: Rp{totals['masuk']} | Keluar: Rp{totals['keluar']} | Saldo: Rp{saldo}"
+        )
+
+
 def main():
     init_data_file()
     while True:
@@ -150,7 +169,8 @@ def main():
         print("4. Update Transaksi")
         print("5. Hapus Transaksi")
         print("6. Filter Transaksi Berdasarkan Tanggal")
-        print("7. Keluar")
+        print("7. Laporan Bulanan")
+        print("8. Keluar")
         choice = input("Pilih menu: ").strip()
 
         if choice == "1":
@@ -166,6 +186,8 @@ def main():
         elif choice == "6":
             filter_transactions_by_date()
         elif choice == "7":
+            monthly_report()
+        elif choice == "8":
             print("Keluar...")
             break
         else:
