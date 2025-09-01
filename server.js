@@ -91,3 +91,15 @@ app.listen(PORT, () => {
 app.get("/", (req, res) => {
   res.send("API running! Use /items");
 });
+function readData() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) {
+      fs.writeFileSync(DATA_FILE, "[]");
+    }
+    const raw = fs.readFileSync(DATA_FILE, "utf8");
+    return JSON.parse(raw || "[]");
+  } catch (err) {
+    console.error("readData error:", err);
+    return [];
+  }
+}
