@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Import Data Keuangan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+  <div class="bg-white p-6 rounded-xl shadow w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4">📥 Import Data Keuangan</h2>
+    <input id="fileInput" type="file" accept=".csv,.xlsx"
+           class="w-full mb-4 p-2 border rounded" />
+    <button id="btnImport"
+            class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
+      Import Sekarang
+    </button>
+    <pre id="status" class="mt-3 text-sm text-gray-600 whitespace-pre-wrap"></pre>
+  </div>
+
+  <script>
+  const API_URL = "https://balancing-wop-production.up.railway.app/items";
+
+  const FIELD_MAP = {
+    username: ["username", "Username", "user", "User"],
+    nama: ["nama", "Nama"],
+    nominal: ["nominal", "Nominal", "jumlah", "Jumlah"],
+    keterangan: ["keterangan", "Keterangan"],
+    tanggal: ["tanggal", "Tanggal", "date", "Date"],
+    photoUrl: ["photoUrl", "PhotoUrl", "foto", "Foto"],
+    publicId: ["publicId", "PublicId"]
+  };
+
+  function findValue(record, keys, fallback = null) {
+    for (const key of keys) {
+      if (record[key] !== undefined && record[key] !== null && record[key] !== "") {
+        return record[key];
+      }
+    }
+    return fallback;
+  }
+
+  function normalizeRecord(record) {
+    const username = String(findValue(record, FIELD_MAP.username, "admin"));
+    return {
+      username,
+      nama: String(findValue(record, FIELD_MAP.nama, username)), // fallback ke username
+      nominal: Number(findValue(record, FIELD_MAP.nominal, 0)) || 0,
+      keterangan: String(findValue(record, FIELD_MAP.keterangan, "")),
+      tanggal: String(findValue(record, FIELD_MAP.tanggal, new Date().toISOString().split("T")[0])).slice(0, 10),
+      photoUrl: findValue(record, FIELD_MAP.photoUrl, null),
+      publicId: findValue(record, FIELD_MAP.publicId, null)
+    };
+  }
+
+  async function loadParser(file) {
+    if (file.name.endsWith(".csv")) {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js");
+      return new Promise((resolve, reject) => {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (res) => resolve(res.data),
+          error: reject
+        });
+      });
+    } else if (file.name.endsWith(".xlsx")) {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      return XLSX.utils.sheet_to_json(sheet);
+    } else {
+      throw new Error("Format tidak didukung, gunakan CSV/XLSX");
+    }
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("Failed to load " + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function insertRecord(normalized) {
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-username": normalized.username
+        },
+        body: JSON.stringify({
+          nama: normalized.nama,
+          nominal: normalized.nominal,
+          keterangan: normalized.keterangan,
+          tanggal: normalized.tanggal,
+          photoUrl: normalized.photoUrl,
+          publicId: normalized.publicId
+        })
+      });
+
+      if (res.ok) return "inserted";
+      const errText = await res.text();
+      document.getElementById("status").textContent += `\n❌ ${normalized.username}/${normalized.nama}: ${errText}`;
+      return "failed";
+    } catch (err) {
+      document.getElementById("status").textContent += `\n❌ ${normalized.username}/${normalized.nama}: ${err.message}`;
+      return "failed";
+    }
+  }
+
+  document.getElementById("btnImport").addEventListener("click", async () => {
+    const file = document.getElementById("fileInput").files[0];
+    const status = document.getElementById("status");
+    if (!file) return alert("Pilih file CSV/Excel dulu");
+
+    status.textContent = "⏳ Sedang memproses...";
+
+    try {
+      const rawRecords = await loadParser(file);
+      let inserted = 0;
+      let failed = 0;
+
+      for (const r of rawRecords) {
+        const normalized = normalizeRecord(r);
+
+        if (!normalized.nama || isNaN(normalized.nominal)) {
+          status.textContent += `\n⚠️ Skip record invalid: ${JSON.stringify(r)}`;
+          failed++;
+          continue;
+        }
+
+        const result = await insertRecord(normalized);
+        if (result === "inserted") inserted++;
+        else failed++;
+      }
+
+      status.textContent = `✅ Import selesai. Insert: ${inserted}, Gagal: ${failed}`;
+    } catch (err) {
+      console.error(err);
+      status.textContent = "❌ Import gagal: " + err.message;
+    }
+  });
+  </script>
+</body>
+</html>
