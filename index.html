@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRUD JSON Railway</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    form { margin-bottom: 20px; }
+    input, button { padding: 8px; margin: 4px; }
+    .item { padding: 10px; border: 1px solid #ddd; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <h1>CRUD Demo (Railway)</h1>
+
+  <form id="createForm">
+    <input type="text" id="name" placeholder="Enter item name" required />
+    <button type="submit">Add Item</button>
+  </form>
+
+  <div id="items"></div>
+
+  <script>
+    const API_URL = "https://balancing-wop.up.railway.app/items";
+
+    async function fetchItems() {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      renderItems(data);
+    }
+
+    async function createItem(name) {
+      await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      fetchItems();
+    }
+
+    async function updateItem(id, newName) {
+      await fetch(`${API_URL}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName }),
+      });
+      fetchItems();
+    }
+
+    async function deleteItem(id) {
+      await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+      fetchItems();
+    }
+
+    function renderItems(items) {
+      const container = document.getElementById("items");
+      container.innerHTML = "";
+      items.forEach((item) => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <strong>${item.name}</strong>
+          <button onclick="updateItem('${item.id}', prompt('New name:', '${item.name}'))">Edit</button>
+          <button onclick="deleteItem('${item.id}')">Delete</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById("createForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      if (name) {
+        createItem(name);
+        document.getElementById("name").value = "";
+      }
+    });
+
+    fetchItems();
+  </script>
+</body>
+</html>
