@@ -1,0 +1,13 @@
+# railway.toml
+[build]
+builder = "NIXPACKS"
+
+[phases.setup]
+nixPkgs = ["nodejs", "npm"]
+
+[phases.build]
+# ganti npm ci -> npm install (lebih fleksibel, gak strict sama package-lock.json)
+cmds = ["npm install"]
+
+[start]
+cmd = "npm start"
