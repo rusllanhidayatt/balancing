@@ -110,6 +110,36 @@ def delete_transaction():
         print("ID tidak ditemukan.")
 
 
+def filter_transactions_by_date():
+    data = load_data()
+    if not data:
+        print("Belum ada transaksi.")
+        return
+
+    start_date = input("Masukkan tanggal awal (YYYY-MM-DD): ").strip()
+    end_date = input("Masukkan tanggal akhir (YYYY-MM-DD): ").strip()
+
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        print("Format tanggal salah!")
+        return
+
+    filtered = [
+        entry for entry in data if start_dt <= datetime.strptime(entry["tanggal"], "%Y-%m-%d") <= end_dt
+    ]
+
+    if not filtered:
+        print("Tidak ada transaksi pada rentang tanggal tersebut.")
+        return
+
+    for entry in filtered:
+        print(
+            f"ID: {entry['id']} | {entry['tanggal']} | {entry['keterangan']} | {entry['tipe']} | Rp{entry['jumlah']}"
+        )
+
+
 def main():
     init_data_file()
     while True:
@@ -119,7 +149,8 @@ def main():
         print("3. Lihat Saldo")
         print("4. Update Transaksi")
         print("5. Hapus Transaksi")
-        print("6. Keluar")
+        print("6. Filter Transaksi Berdasarkan Tanggal")
+        print("7. Keluar")
         choice = input("Pilih menu: ").strip()
 
         if choice == "1":
@@ -133,6 +164,8 @@ def main():
         elif choice == "5":
             delete_transaction()
         elif choice == "6":
+            filter_transactions_by_date()
+        elif choice == "7":
             print("Keluar...")
             break
         else:
