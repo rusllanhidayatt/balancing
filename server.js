@@ -5,8 +5,8 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const multer = require("multer");
 const sharp = require("sharp");
-const { google } = require("googleapis");
 const { Readable } = require("stream");
+const { v2: cloudinary } = require("cloudinary");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,25 +14,24 @@ const DATA_FILE = "./data.json";
 
 // === Middleware ===
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "2mb" }));
 
-// === Users fix ===
+// === Users ===
 const USERS = [
   { username: "admin", role: "admin" },
   { username: "fenita", role: "user" },
   { username: "ruslan", role: "user" },
 ];
 
-// === Google Drive OAuth ===
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
-oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+// === Cloudinary Config ===
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // === File Upload Middleware ===
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 
 // === Helper functions for local data.json ===
 function readData() {
@@ -49,12 +48,16 @@ function readData() {
 }
 
 function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error("writeData error:", err);
+  }
 }
 
 // === Login API ===
 app.post("/login", (req, res) => {
-  const { username } = req.body;
+  const { username } = req.body || {};
   const user = USERS.find((u) => u.username === username);
   if (!user) return res.status(401).json({ error: "User tidak terdaftar" });
   res.json({ success: true, user });
@@ -75,21 +78,30 @@ app.post("/items", (req, res) => {
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
     const items = readData();
-    const { nama, nominal, keterangan, tanggal, photoUrl } = req.body;
+    const { nama, nominal, keterangan, tanggal, photoUrl } = req.body || {};
+
+    // simple validation & normalization
+    const parsedNominal = Number(nominal);
+    if (!nama || Number.isNaN(parsedNominal)) {
+      return res.status(400).json({ error: "Nama & nominal wajib diisi (nominal harus angka)" });
+    }
+
     const newItem = {
-        id: Date.now(),
-        user: user.username,
-        nama,
-        nominal,
-        keterangan,
-        tanggal,        // ✅ sekarang tanggal ikut disimpan
-        photoUrl,       // ✅ sekalian simpan photoUrl biar konsisten
-        createdAt: new Date().toISOString(),
+      id: Date.now(),
+      user: user.username,
+      nama: String(nama),
+      nominal: parsedNominal,
+      keterangan: keterangan ? String(keterangan) : "",
+      tanggal: tanggal ? String(tanggal) : new Date().toISOString().split("T")[0],
+      photoUrl: photoUrl || null,
+      createdAt: new Date().toISOString(),
     };
+
     items.push(newItem);
     writeData(items);
     res.status(201).json(newItem);
   } catch (err) {
+    console.error("Create item error:", err);
     res.status(500).json({ error: "Failed to create item" });
   }
 });
@@ -107,6 +119,7 @@ app.get("/items", (req, res) => {
     const ownItems = items.filter((i) => i.user === user.username);
     res.json(ownItems);
   } catch (err) {
+    console.error("Read items error:", err);
     res.status(500).json({ error: "Failed to read items" });
   }
 });
@@ -125,10 +138,12 @@ app.put("/items/:id", (req, res) => {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    // optional: validate fields before merging
     items[index] = { ...items[index], ...req.body };
     writeData(items);
     res.json(items[index]);
   } catch (err) {
+    console.error("Update item error:", err);
     res.status(500).json({ error: "Failed to update item" });
   }
 });
@@ -151,51 +166,44 @@ app.delete("/items/:id", (req, res) => {
     writeData(newItems);
     res.json({ success: true });
   } catch (err) {
+    console.error("Delete item error:", err);
     res.status(500).json({ error: "Failed to delete item" });
   }
 });
 
-// === Upload bukti pembayaran ke Google Drive ===
+// === Upload ke Cloudinary ===
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     const user = getUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
-
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
     const compressedBuffer = await sharp(req.file.buffer)
+      .rotate()
       .resize({ width: 1024, withoutEnlargement: true })
-      .jpeg({ quality: 70 })
+      .jpeg({ quality: 75 })
       .toBuffer();
 
-    const drive = google.drive({ version: "v3", auth: oauth2Client });
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: process.env.CLOUDINARY_FOLDER || "balancing",
+        resource_type: "image",
+      },
+      (error, result) => {
+        if (error) {
+          console.error("Cloudinary error:", error);
+          return res.status(500).json({ error: "Upload failed" });
+        }
+        res.json({
+          success: true,
+          id: result.public_id,
+          link: result.secure_url,
+        });
+      }
+    );
 
-    const fileMetadata = {
-      name: req.file.originalname.replace(/\.[^/.]+$/, "") + ".jpg",
-      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
-    };
-
-    const media = {
-      mimeType: "image/jpeg",
-      body: Readable.from(compressedBuffer),
-    };
-
-    const file = await drive.files.create({
-      resource: fileMetadata,
-      media: media,
-      fields: "id, webViewLink",
-    });
-
-    await drive.permissions.create({
-      fileId: file.data.id,
-      requestBody: { role: "reader", type: "anyone" },
-    });
-
-    res.json({
-      success: true,
-      id: file.data.id,
-      link: `https://drive.google.com/uc?export=view&id=${file.data.id}`,
-    });
+    // pipe compressed buffer into cloudinary stream
+    Readable.from(compressedBuffer).pipe(stream);
   } catch (err) {
     console.error("Upload error:", err);
     res.status(500).json({ error: "Upload failed" });
