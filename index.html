@@ -5,141 +5,154 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Keuangan App</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    .hidden { display: none; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    body { font-family: 'Segoe UI', sans-serif; background:#f5f7fa; margin:0; padding:0; }
+    .container { max-width:900px; margin:20px auto; padding:20px; background:white; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    h2,h3 { color:#333; margin-bottom:10px; }
+    button { background:#4f46e5; color:white; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; }
+    button:hover { background:#4338ca; }
+    input, select { padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:6px; width:100%; }
+    table { width:100%; border-collapse:collapse; margin-top:15px; }
+    th { background:#4f46e5; color:white; padding:10px; text-align:left; }
+    td { border-bottom:1px solid #ddd; padding:8px; }
+    tr:hover { background:#f9fafb; }
+    .summary { display:flex; gap:20px; margin:10px 0; }
+    .card { flex:1; padding:15px; border-radius:8px; color:white; }
+    .income { background:#16a34a; }
+    .expense { background:#dc2626; }
+    .balance { background:#2563eb; }
+    .hidden { display:none; }
   </style>
 </head>
 <body>
-  <h2>Login</h2>
-  <div id="loginForm">
-    <input id="username" placeholder="username" />
-    <input id="password" type="password" placeholder="password" />
-    <button onclick="login()">Login</button>
+  <div class="container">
+    <h2>Login</h2>
+    <div id="loginForm">
+        <input id="username" placeholder="username" />
+        <input id="password" type="password" placeholder="password" />
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="app" class="hidden">
+        <h2 id="welcome"></h2>
+        <button onclick="logout()">Logout</button>
+
+        <h3>Ringkasan</h3>
+        <p>Pemasukan: <span id="pemasukan">0</span></p>
+        <p>Pengeluaran: <span id="pengeluaran">0</span></p>
+        <p>Saldo: <span id="saldo">0</span></p>
+        <button onclick="exportCSV()">Export CSV</button>
+
+        <h3>Tambah Transaksi</h3>
+        <form id="itemForm">
+        <input type="number" id="nominal" placeholder="Nominal (gunakan - utk keluar)" required /><br/>
+        <input type="text" id="keterangan" placeholder="Keterangan" required /><br/>
+        <input type="file" id="file" /><br/>
+        <button type="submit">Simpan</button>
+        </form>
+
+        <h3>Data Transaksi</h3>
+        <table id="itemsTable">
+        <thead>
+            <tr>
+            <th>ID</th><th>Nominal</th><th>Keterangan</th><th>Bukti</th><th>Tanggal</th><th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+        </table>
+    </div>
+    <script>
+    let currentUser = null;
+
+    async function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username, password})
+    });
+    const data = await res.json();
+    if (res.ok) {
+        currentUser = data;
+        document.getElementById("loginForm").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+        document.getElementById("welcome").innerText = `Halo, ${data.username} (${data.role})`;
+        loadItems();
+        loadSummary();
+    } else {
+        alert(data.error);
+    }
+    }
+
+    function logout() {
+    currentUser = null;
+    document.getElementById("loginForm").classList.remove("hidden");
+    document.getElementById("app").classList.add("hidden");
+    }
+
+    async function loadItems() {
+    if (!currentUser) return;
+    const res = await fetch(`/items/${currentUser.id}?role=${currentUser.role}`);
+    const items = await res.json();
+    const tbody = document.querySelector("#itemsTable tbody");
+    tbody.innerHTML = "";
+    items.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+        <td>${item.id}</td>
+        <td>${item.nominal}</td>
+        <td>${item.keterangan}</td>
+        <td>${item.buktiUrl ? `<a href="${item.buktiUrl}" target="_blank">Bukti</a>` : "-"}</td>
+        <td>${new Date(item.createdAt).toLocaleString()}</td>
+        <td><button onclick="deleteItem(${item.id})">Hapus</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    }
+
+    async function loadSummary() {
+    if (!currentUser) return;
+    const res = await fetch(`/summary/${currentUser.id}?role=${currentUser.role}`);
+    const s = await res.json();
+    document.getElementById("pemasukan").innerText = s.pemasukan;
+    document.getElementById("pengeluaran").innerText = s.pengeluaran;
+    document.getElementById("saldo").innerText = s.saldo;
+    }
+
+    document.getElementById("itemForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const formData = new FormData();
+    formData.append("userId", currentUser.id);
+    formData.append("nominal", document.getElementById("nominal").value);
+    formData.append("keterangan", document.getElementById("keterangan").value);
+    const file = document.getElementById("file").files[0];
+    if (file) formData.append("file", file);
+
+    const res = await fetch("/items", { method: "POST", body: formData });
+    if (res.ok) {
+        document.getElementById("itemForm").reset();
+        loadItems();
+        loadSummary();
+    } else {
+        alert("Gagal simpan");
+    }
+    });
+
+    async function deleteItem(id) {
+    if (!confirm("Yakin hapus?")) return;
+    const res = await fetch(`/items/${id}`, { method: "DELETE" });
+    if (res.ok) {
+        loadItems();
+        loadSummary();
+    }
+    }
+
+    function exportCSV() {
+    if (!currentUser) return;
+    window.location.href = `/export/${currentUser.id}?role=${currentUser.role}`;
+    }
+    </script>
   </div>
-
-  <div id="app" class="hidden">
-    <h2 id="welcome"></h2>
-    <button onclick="logout()">Logout</button>
-
-    <h3>Ringkasan</h3>
-    <p>Pemasukan: <span id="pemasukan">0</span></p>
-    <p>Pengeluaran: <span id="pengeluaran">0</span></p>
-    <p>Saldo: <span id="saldo">0</span></p>
-    <button onclick="exportCSV()">Export CSV</button>
-
-    <h3>Tambah Transaksi</h3>
-    <form id="itemForm">
-      <input type="number" id="nominal" placeholder="Nominal (gunakan - utk keluar)" required /><br/>
-      <input type="text" id="keterangan" placeholder="Keterangan" required /><br/>
-      <input type="file" id="file" /><br/>
-      <button type="submit">Simpan</button>
-    </form>
-
-    <h3>Data Transaksi</h3>
-    <table id="itemsTable">
-      <thead>
-        <tr>
-          <th>ID</th><th>Nominal</th><th>Keterangan</th><th>Bukti</th><th>Tanggal</th><th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-<script>
-let currentUser = null;
-
-async function login() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({username, password})
-  });
-  const data = await res.json();
-  if (res.ok) {
-    currentUser = data;
-    document.getElementById("loginForm").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    document.getElementById("welcome").innerText = `Halo, ${data.username} (${data.role})`;
-    loadItems();
-    loadSummary();
-  } else {
-    alert(data.error);
-  }
-}
-
-function logout() {
-  currentUser = null;
-  document.getElementById("loginForm").classList.remove("hidden");
-  document.getElementById("app").classList.add("hidden");
-}
-
-async function loadItems() {
-  if (!currentUser) return;
-  const res = await fetch(`/items/${currentUser.id}?role=${currentUser.role}`);
-  const items = await res.json();
-  const tbody = document.querySelector("#itemsTable tbody");
-  tbody.innerHTML = "";
-  items.forEach(item => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${item.id}</td>
-      <td>${item.nominal}</td>
-      <td>${item.keterangan}</td>
-      <td>${item.buktiUrl ? `<a href="${item.buktiUrl}" target="_blank">Bukti</a>` : "-"}</td>
-      <td>${new Date(item.createdAt).toLocaleString()}</td>
-      <td><button onclick="deleteItem(${item.id})">Hapus</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-async function loadSummary() {
-  if (!currentUser) return;
-  const res = await fetch(`/summary/${currentUser.id}?role=${currentUser.role}`);
-  const s = await res.json();
-  document.getElementById("pemasukan").innerText = s.pemasukan;
-  document.getElementById("pengeluaran").innerText = s.pengeluaran;
-  document.getElementById("saldo").innerText = s.saldo;
-}
-
-document.getElementById("itemForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!currentUser) return;
-  const formData = new FormData();
-  formData.append("userId", currentUser.id);
-  formData.append("nominal", document.getElementById("nominal").value);
-  formData.append("keterangan", document.getElementById("keterangan").value);
-  const file = document.getElementById("file").files[0];
-  if (file) formData.append("file", file);
-
-  const res = await fetch("/items", { method: "POST", body: formData });
-  if (res.ok) {
-    document.getElementById("itemForm").reset();
-    loadItems();
-    loadSummary();
-  } else {
-    alert("Gagal simpan");
-  }
-});
-
-async function deleteItem(id) {
-  if (!confirm("Yakin hapus?")) return;
-  const res = await fetch(`/items/${id}`, { method: "DELETE" });
-  if (res.ok) {
-    loadItems();
-    loadSummary();
-  }
-}
-
-function exportCSV() {
-  if (!currentUser) return;
-  window.location.href = `/export/${currentUser.id}?role=${currentUser.role}`;
-}
-</script>
 </body>
 </html>
