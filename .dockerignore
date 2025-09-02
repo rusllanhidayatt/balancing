@@ -1,4 +1,14 @@
+# keep build context tiny
 node_modules
 .git
-dist
-uploads
+.github
+.vscode
+.DS_Store
+__MACOSX
+*.log
+*.zip
+
+
+# data & caches
+.data/
+data.json
