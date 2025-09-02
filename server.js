@@ -1,140 +1,211 @@
 // server.js
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
+const fs = require("fs");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const path = require("path");
+const multer = require("multer");
+const sharp = require("sharp");
+const { google } = require("googleapis");
+const { Readable } = require("stream");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const DATA_FILE = "./data.json";
 
 // === Middleware ===
 app.use(cors());
 app.use(bodyParser.json());
 
-// === SQLite Setup ===
-const db = new sqlite3.Database("./data.db");
+// === Users fix ===
+const USERS = [
+  { username: "admin", role: "admin" },
+  { username: "fenita", role: "user" },
+  { username: "ruslan", role: "user" },
+];
 
-// Buat tabel jika belum ada
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT,
-      role TEXT
-    )
-  `);
-  db.run(`
-    CREATE TABLE IF NOT EXISTS items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER,
-      nominal REAL,
-      keterangan TEXT,
-      buktiUrl TEXT,
-      createdAt TEXT
-    )
-  `);
+// === Google Drive OAuth ===
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
+oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
 
-  // Seed user kalau kosong
-  db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
-    if (row.count === 0) {
-      const stmt = db.prepare(
-        "INSERT INTO users (username,password,role) VALUES (?,?,?)"
-      );
-      stmt.run("admin", "1234", "admin");
-      stmt.run("fenita", "123", "user");
-      stmt.run("ruslan", "123", "user");
-      stmt.finalize();
-      console.log("✅ Users seeded: admin, fenita, ruslan");
+// === File Upload Middleware ===
+const upload = multer({ storage: multer.memoryStorage() });
+
+// === Helper functions for local data.json ===
+function readData() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) {
+      fs.writeFileSync(DATA_FILE, "[]");
     }
-  });
-});
+    const raw = fs.readFileSync(DATA_FILE, "utf8");
+    return JSON.parse(raw || "[]");
+  } catch (err) {
+    console.error("readData error:", err);
+    return [];
+  }
+}
 
-// === Auth Login ===
+function writeData(data) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+// === Login API ===
 app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-  db.get(
-    "SELECT id, username, role FROM users WHERE username=? AND password=?",
-    [username, password],
-    (err, row) => {
-      if (err) return res.status(500).json({ error: "DB error" });
-      if (!row) return res.json({ success: false });
-
-      res.json({ success: true, user: row });
-    }
-  );
+  const { username } = req.body;
+  const user = USERS.find((u) => u.username === username);
+  if (!user) return res.status(401).json({ error: "User tidak terdaftar" });
+  res.json({ success: true, user });
 });
 
-// === CRUD Items ===
+// === Middleware cek user ===
+function getUser(req) {
+  const username = req.header("x-username");
+  return USERS.find((u) => u.username === username);
+}
+
+// === CRUD APIs ===
+
+// CREATE
 app.post("/items", (req, res) => {
-  const { userId, nominal, keterangan, buktiUrl } = req.body;
-  const createdAt = new Date().toISOString();
+  try {
+    const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-  db.run(
-    "INSERT INTO items (userId, nominal, keterangan, buktiUrl, createdAt) VALUES (?, ?, ?, ?, ?)",
-    [userId, nominal, keterangan, buktiUrl, createdAt],
-    function (err) {
-      if (err) return res.status(500).json({ error: "Insert failed" });
-      res.json({
-        id: this.lastID,
-        userId,
-        nominal,
-        keterangan,
-        buktiUrl,
-        createdAt,
-      });
-    }
-  );
-});
-
-app.get("/items/:userId", (req, res) => {
-  const { userId } = req.params;
-  const { role } = req.query;
-
-  if (role === "admin") {
-    db.all("SELECT * FROM items", [], (err, rows) => {
-      if (err) return res.status(500).json({ error: "Read failed" });
-      res.json(rows);
-    });
-  } else {
-    db.all("SELECT * FROM items WHERE userId=?", [userId], (err, rows) => {
-      if (err) return res.status(500).json({ error: "Read failed" });
-      res.json(rows);
-    });
+    const items = readData();
+    const { nama, nominal, keterangan } = req.body;
+    const newItem = {
+      id: Date.now(),
+      user: user.username,
+      nama,
+      nominal,
+      keterangan,
+      createdAt: new Date().toISOString(),
+    };
+    items.push(newItem);
+    writeData(items);
+    res.status(201).json(newItem);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create item" });
   }
 });
 
+// READ ALL
+app.get("/items", (req, res) => {
+  try {
+    const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    const items = readData();
+    if (user.role === "admin") {
+      return res.json(items);
+    }
+    const ownItems = items.filter((i) => i.user === user.username);
+    res.json(ownItems);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to read items" });
+  }
+});
+
+// UPDATE
+app.put("/items/:id", (req, res) => {
+  try {
+    const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    let items = readData();
+    const index = items.findIndex((i) => i.id == req.params.id);
+    if (index === -1) return res.status(404).json({ error: "Not found" });
+
+    if (user.role !== "admin" && items[index].user !== user.username) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    items[index] = { ...items[index], ...req.body };
+    writeData(items);
+    res.json(items[index]);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update item" });
+  }
+});
+
+// DELETE
 app.delete("/items/:id", (req, res) => {
-  db.run("DELETE FROM items WHERE id=?", [req.params.id], function (err) {
-    if (err) return res.status(500).json({ error: "Delete failed" });
-    res.json({ success: this.changes > 0 });
-  });
+  try {
+    const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    let items = readData();
+    const index = items.findIndex((i) => i.id == req.params.id);
+    if (index === -1) return res.status(404).json({ error: "Not found" });
+
+    if (user.role !== "admin" && items[index].user !== user.username) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const newItems = items.filter((i) => i.id != req.params.id);
+    writeData(newItems);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete item" });
+  }
 });
 
-// === Summary ===
-app.get("/summary/:userId", (req, res) => {
-  const { userId } = req.params;
-  const { role } = req.query;
+// === Upload bukti pembayaran ke Google Drive ===
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-  const sql =
-    role === "admin"
-      ? "SELECT SUM(nominal) as total FROM items"
-      : "SELECT SUM(nominal) as total FROM items WHERE userId=?";
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-  db.get(sql, role === "admin" ? [] : [userId], (err, row) => {
-    if (err) return res.status(500).json({ error: "Summary failed" });
-    res.json({ total: row.total || 0 });
-  });
+    const compressedBuffer = await sharp(req.file.buffer)
+      .resize({ width: 1024, withoutEnlargement: true })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+
+    const drive = google.drive({ version: "v3", auth: oauth2Client });
+
+    const fileMetadata = {
+      name: req.file.originalname.replace(/\.[^/.]+$/, "") + ".jpg",
+      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
+    };
+
+    const media = {
+      mimeType: "image/jpeg",
+      body: Readable.from(compressedBuffer),
+    };
+
+    const file = await drive.files.create({
+      resource: fileMetadata,
+      media: media,
+      fields: "id, webViewLink",
+    });
+
+    await drive.permissions.create({
+      fileId: file.data.id,
+      requestBody: { role: "reader", type: "anyone" },
+    });
+
+    res.json({
+      success: true,
+      id: file.data.id,
+      link: `https://drive.google.com/uc?export=view&id=${file.data.id}`,
+    });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
 });
 
-// === Serve frontend ===
-app.use(express.static(path.join(__dirname, "public")));
+// === Root endpoint ===
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.send("API running! Use /login, /items or /upload");
 });
 
 // === Start server ===
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

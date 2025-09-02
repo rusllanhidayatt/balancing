@@ -1,12 +1,15 @@
 # railway.toml
+
 [build]
 builder = "NIXPACKS"
 
 [phases.setup]
-nixPkgs = ["nodejs_20", "npm"]
+nixPkgs = ["nodejs", "npm"]
 
 [phases.build]
+# Gunakan npm install biar fleksibel, tidak strict kayak npm ci
 cmds = ["npm install"]
 
 [start]
+# Jalankan server Express
 cmd = "npm run start"
