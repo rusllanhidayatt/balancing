@@ -6,7 +6,6 @@
     <title>Keuangan + Upload Struk</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* small helper for thumbnail */
       .thumb { width:72px; height:72px; object-fit:cover; border-radius:6px; }
     </style>
   </head>
@@ -70,7 +69,6 @@
             <input id="fieldKeterangan" type="text" placeholder="Keterangan" class="p-2 border rounded dark:bg-gray-700" />
             <input id="fieldTanggal" type="date" class="p-2 border rounded dark:bg-gray-700" />
 
-            <!-- file upload (in form but handled separately) -->
             <div class="flex items-center gap-2 md:col-span-5">
               <input id="fileInput" type="file" accept="image/*" class="p-1" />
               <button id="submitBtn" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded">Tambah & Upload</button>
@@ -102,36 +100,44 @@
     </div>
 
     <script>
-      // --- CONFIG: ganti ini sesuai URL backend kamu ---
-      const API_URL = "https://balancing-wop-production.up.railway.app"; // tanpa /items
+      const API_URL = "http://localhost:3000";
       const UPLOAD_ENDPOINT = API_URL + "/upload";
       const ITEMS_ENDPOINT = API_URL + "/items";
 
-      // --- Login (simple) ---
       const defaultUser = { username: 'admin', password: '1234' };
       const loginScreen = document.getElementById('loginScreen');
       const app = document.getElementById('app');
+
       document.getElementById('btnLogin').addEventListener('click', () => {
         const u = document.getElementById('userInput').value || 'admin';
         const p = document.getElementById('passInput').value || '1234';
         if (u === defaultUser.username && p === defaultUser.password) {
           localStorage.setItem('loggedIn', 'true');
+          localStorage.setItem('username', u);
+          showApp();
+        } else if (u !== 'admin' && p === '1234') {
+          localStorage.setItem('loggedIn', 'true');
+          localStorage.setItem('username', u);
           showApp();
         } else {
           alert('Username / password salah');
         }
       });
-      document.getElementById('btnLogout').addEventListener('click', () => { localStorage.removeItem('loggedIn'); location.reload(); });
+
+      document.getElementById('btnLogout').addEventListener('click', () => { 
+        localStorage.removeItem('loggedIn'); 
+        localStorage.removeItem('username'); 
+        location.reload(); 
+      });
+
       if (localStorage.getItem('loggedIn')) showApp();
 
-      // --- Theme (auto + toggle) ---
       const themeBtn = document.getElementById('btnToggleTheme');
       function applyTheme(theme) {
         if (theme === 'dark') document.documentElement.classList.add('dark');
         else document.documentElement.classList.remove('dark');
         localStorage.setItem('theme', theme);
       }
-      // cek preferensi OS, fallback ke light
       const userPref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       const savedTheme = localStorage.getItem('theme') || userPref;
       applyTheme(savedTheme);
@@ -141,50 +147,29 @@
         applyTheme(cur === 'dark' ? 'light' : 'dark');
       });
 
-      // --- Helpers ---
       function fmtRp(num){ return 'Rp ' + Number(num).toLocaleString('id-ID'); }
-      function safeJsonParse(s){ try{ return JSON.parse(s||'[]'); }catch(e){return [];} }
       function showApp(){ loginScreen.classList.add('hidden'); app.classList.remove('hidden'); fetchAndRender(); }
       function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
-      // --- Fetch items and render ---
       async function fetchAndRender(){
         try{
-          const res = await fetch(ITEMS_ENDPOINT);
+          const res = await fetch(ITEMS_ENDPOINT, {
+            headers: { "x-username": localStorage.getItem("username") }
+          });
           const items = await res.json();
           render(items);
         }catch(err){ console.error(err); alert('Gagal memuat data'); }
       }
 
-      function filterItems(items){
-        const filter = document.getElementById('filterRange').value;
-        const now = new Date();
-        return items.filter(it => {
-          if (!it.tanggal) return filter==='all';
-          const d = new Date(it.tanggal);
-          if (filter==='today') return d.toDateString() === now.toDateString();
-          if (filter==='week'){
-            const start = new Date(now); start.setDate(now.getDate() - now.getDay()); start.setHours(0,0,0,0);
-            const end = new Date(start); end.setDate(start.getDate() + 6); end.setHours(23,59,59,999);
-            return d >= start && d <= end;
-          }
-          if (filter==='month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-          return true;
-        });
-      }
-
       function render(items){
-        const filtered = filterItems(items);
-        // update summary
         let income=0, expense=0;
-        filtered.forEach(i => { const n = Number(i.nominal)||0; if (n>0) income+=n; else expense+=n; });
+        items.forEach(i => { const n = Number(i.nominal)||0; if (n>0) income+=n; else expense+=n; });
         document.getElementById('totalIncome').textContent = fmtRp(income);
         document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
         document.getElementById('totalBalance').textContent = fmtRp(income+expense);
 
-        // table desktop
         const tbody = document.getElementById('tableBody'); tbody.innerHTML='';
-        filtered.forEach(it => {
+        items.forEach(it => {
           tbody.innerHTML += `
             <tr class="border-b align-top">
               <td class="p-2">${escapeHtml(it.nama||'-')}</td>
@@ -197,9 +182,8 @@
           `;
         });
 
-        // cards mobile
         const card = document.getElementById('cardList'); card.innerHTML='';
-        filtered.forEach(it => {
+        items.forEach(it => {
           card.innerHTML += `
             <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
               <div class="flex justify-between items-start">
@@ -221,7 +205,6 @@
         });
       }
 
-      // --- Create item + upload ---
       document.getElementById('itemForm').addEventListener('submit', async (e)=>{
         e.preventDefault();
         const nama = document.getElementById('fieldNama').value.trim();
@@ -244,11 +227,13 @@
             statusEl.textContent = 'Upload selesai';
           }
 
-          // create item
-          const createRes = await fetch(ITEMS_ENDPOINT, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ nama, nominal, keterangan, tanggal, photoUrl }) });
+          const createRes = await fetch(ITEMS_ENDPOINT, { 
+            method: 'POST', 
+            headers: { 'Content-Type':'application/json', 'x-username': localStorage.getItem('username') }, 
+            body: JSON.stringify({ nama, nominal, keterangan, tanggal, photoUrl }) 
+          });
           if(!createRes.ok){ const t = await createRes.text(); throw new Error(t||'Gagal buat item'); }
 
-          // clear form
           document.getElementById('itemForm').reset();
           statusEl.textContent = 'Transaksi tersimpan';
           setTimeout(()=> statusEl.textContent='',2500);
@@ -256,11 +241,15 @@
         }catch(err){ console.error(err); alert('Gagal: '+ err.message); statusEl.textContent=''; }
       });
 
-      async function deleteItem(id){ if(!confirm('Hapus transaksi?')) return; await fetch(ITEMS_ENDPOINT + '/' + id, { method:'DELETE' }); fetchAndRender(); }
+      async function deleteItem(id){ 
+        if(!confirm('Hapus transaksi?')) return; 
+        await fetch(ITEMS_ENDPOINT + '/' + id, { method:'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
+        fetchAndRender(); 
+      }
 
-      // --- Export ---
       document.getElementById('btnExportCSV').addEventListener('click', async ()=>{
-        const res = await fetch(ITEMS_ENDPOINT); const data = await res.json(); if(!data.length){ alert('Data kosong'); return; }
+        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } }); 
+        const data = await res.json(); if(!data.length){ alert('Data kosong'); return; }
         const headers = ['Nama','Nominal','Keterangan','Tanggal','PhotoUrl'];
         const rows = data.map(i => [i.nama,i.nominal,i.keterangan,i.tanggal,i.photoUrl||'']);
         const csv = [headers, ...rows].map(r => r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -268,7 +257,8 @@
       });
 
       document.getElementById('btnExportExcel').addEventListener('click', async ()=>{
-        const res = await fetch(ITEMS_ENDPOINT); const data = await res.json(); if(!data.length){ alert('Data kosong'); return; }
+        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } }); 
+        const data = await res.json(); if(!data.length){ alert('Data kosong'); return; }
         if(typeof XLSX === 'undefined'){ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); }
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Keuangan'); XLSX.writeFile(wb, 'keuangan.xlsx');
@@ -276,7 +266,6 @@
 
       function loadScript(src){ return new Promise((resolve,reject)=>{ const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
 
-      // --- Events ---
       document.getElementById('filterRange').addEventListener('change', fetchAndRender);
       document.getElementById('passInput').addEventListener('keypress', (e)=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
     </script>

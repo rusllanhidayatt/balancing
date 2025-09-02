@@ -12,7 +12,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = "./data.json";
 
-// === Middleware ===
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -24,19 +23,14 @@ const oauth2Client = new google.auth.OAuth2(
 );
 oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
 
-// === File Upload Middleware ===
 const upload = multer({ storage: multer.memoryStorage() });
 
-// === Helper functions for local data.json ===
+// === Helper JSON ===
 function readData() {
   try {
-    if (!fs.existsSync(DATA_FILE)) {
-      fs.writeFileSync(DATA_FILE, "[]");
-    }
-    const raw = fs.readFileSync(DATA_FILE, "utf8");
-    return JSON.parse(raw || "[]");
-  } catch (err) {
-    console.error("readData error:", err);
+    if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, "[]");
+    return JSON.parse(fs.readFileSync(DATA_FILE, "utf8") || "[]");
+  } catch {
     return [];
   }
 }
@@ -45,20 +39,29 @@ function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// === CRUD APIs ===
+// === Middleware cek user dari header ===
+function getUser(req) {
+  return req.headers["x-username"] || "guest";
+}
 
-// CREATE
+// === CRUD APIs ===
 app.post("/items", (req, res) => {
   try {
     const items = readData();
-    const { nama, nominal, keterangan } = req.body;
+    const user = getUser(req);
+    const { nama, nominal, keterangan, tanggal, photoUrl } = req.body;
+
     const newItem = {
       id: Date.now(),
+      user,
       nama,
       nominal,
       keterangan,
+      tanggal: tanggal || new Date().toISOString().split("T")[0],
+      photoUrl: photoUrl || null,
       createdAt: new Date().toISOString(),
     };
+
     items.push(newItem);
     writeData(items);
     res.status(201).json(newItem);
@@ -67,34 +70,39 @@ app.post("/items", (req, res) => {
   }
 });
 
-// READ ALL
 app.get("/items", (req, res) => {
   try {
     const items = readData();
-    res.json(items);
+    const user = getUser(req);
+    if (user === "admin") return res.json(items);
+    res.json(items.filter((i) => i.user === user));
   } catch (err) {
     res.status(500).json({ error: "Failed to read items" });
   }
 });
 
-// READ ONE
 app.get("/items/:id", (req, res) => {
   try {
     const items = readData();
+    const user = getUser(req);
     const item = items.find((i) => i.id == req.params.id);
     if (!item) return res.status(404).json({ error: "Not found" });
+    if (user !== "admin" && item.user !== user)
+      return res.status(403).json({ error: "Forbidden" });
     res.json(item);
   } catch (err) {
     res.status(500).json({ error: "Failed to read item" });
   }
 });
 
-// UPDATE
 app.put("/items/:id", (req, res) => {
   try {
     let items = readData();
+    const user = getUser(req);
     const index = items.findIndex((i) => i.id == req.params.id);
     if (index === -1) return res.status(404).json({ error: "Not found" });
+    if (user !== "admin" && items[index].user !== user)
+      return res.status(403).json({ error: "Forbidden" });
 
     items[index] = { ...items[index], ...req.body };
     writeData(items);
@@ -104,27 +112,28 @@ app.put("/items/:id", (req, res) => {
   }
 });
 
-// DELETE
 app.delete("/items/:id", (req, res) => {
   try {
     let items = readData();
-    const newItems = items.filter((i) => i.id != req.params.id);
-    if (items.length === newItems.length)
-      return res.status(404).json({ error: "Not found" });
+    const user = getUser(req);
+    const index = items.findIndex((i) => i.id == req.params.id);
+    if (index === -1) return res.status(404).json({ error: "Not found" });
+    if (user !== "admin" && items[index].user !== user)
+      return res.status(403).json({ error: "Forbidden" });
 
-    writeData(newItems);
+    items.splice(index, 1);
+    writeData(items);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete item" });
   }
 });
 
-// === Upload bukti pembayaran ke Google Drive ===
+// === Upload ke Google Drive ===
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    // compress foto jadi JPEG max 1024px, kualitas 70%
     const compressedBuffer = await sharp(req.file.buffer)
       .resize({ width: 1024, withoutEnlargement: true })
       .jpeg({ quality: 70 })
@@ -137,18 +146,14 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
     };
 
-    const media = {
-      mimeType: "image/jpeg",
-      body: Readable.from(compressedBuffer),
-    };
+    const media = { mimeType: "image/jpeg", body: Readable.from(compressedBuffer) };
 
     const file = await drive.files.create({
       resource: fileMetadata,
-      media: media,
+      media,
       fields: "id, webViewLink",
     });
 
-    // set permission jadi public
     await drive.permissions.create({
       fileId: file.data.id,
       requestBody: { role: "reader", type: "anyone" },
@@ -165,12 +170,11 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-// === Root endpoint ===
+// === Root ===
 app.get("/", (req, res) => {
   res.send("API running! Use /items or /upload");
 });
 
-// === Start server ===
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
