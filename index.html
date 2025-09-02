@@ -67,6 +67,7 @@
             <input id="fieldNama" type="text" placeholder="Nama" class="p-2 border rounded md:col-span-2 dark:bg-gray-700" required />
             <input id="fieldNominal" type="number" placeholder="Nominal (positif/pemasukan, negatif/pengeluaran)" class="p-2 border rounded dark:bg-gray-700" required />
             <input id="fieldKeterangan" type="text" placeholder="Keterangan" class="p-2 border rounded dark:bg-gray-700" />
+            <input id="fieldTanggal" type="date" class="p-2 border rounded dark:bg-gray-700" />
 
             <div class="flex items-center gap-2 md:col-span-5">
               <input id="fileInput" type="file" accept="image/*" class="p-1" />
@@ -200,7 +201,7 @@
               <td class="p-2">${escapeHtml(it.nama||'-')}</td>
               <td class="p-2">${fmtRp(it.nominal||0)}</td>
               <td class="p-2">${escapeHtml(it.keterangan||'-')}</td>
-              <td class="p-2">${escapeHtml(it.createdAt||'-')}</td>
+              <td class="p-2">${escapeHtml(it.tanggal||'-')}</td>
               <td class="p-2">${it.photoUrl?`<a target=_blank href="${it.photoUrl}"><img class='thumb' src='${it.photoUrl}'/></a>`:'-'} </td>
               <td class="p-2"><button class="text-red-600" onclick="deleteItem(${it.id})">Hapus</button></td>
             </tr>
@@ -219,7 +220,7 @@
                 </div>
                 <div class="text-right">
                   <div class="font-semibold ${Number(it.nominal)>=0? 'text-green-600':'text-red-500'}">${fmtRp(it.nominal||0)}</div>
-                  <div class="text-xs text-gray-400">${escapeHtml(it.createdAt||'-')}</div>
+                  <div class="text-xs text-gray-400">${escapeHtml(it.tanggal||'-')}</div>
                 </div>
               </div>
               <div class="mt-3 flex items-center gap-3">
