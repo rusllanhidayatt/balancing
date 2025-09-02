@@ -118,7 +118,7 @@
         const u = (document.getElementById('userInput').value || '').trim();
         const p = document.getElementById('passInput').value || '';
         if (!u) return alert('Masukkan username');
-        if (p !== 'fenisayangruslan') return alert('Password salah!');
+        if (p !== 'fenisayangruslan') return alert('Password silahkan minta ke Ruslan Kasep!');
         try {
           const res = await fetch(API_URL + '/login', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
