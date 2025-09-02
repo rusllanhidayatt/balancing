@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Finance Apps</title>
     <link rel="icon" type="image/jpeg" href="favicon.jpg" />
+    <link rel="icon" href="favicon.jpg" sizes="32x32" />
+    <link rel="apple-touch-icon" href="favicon.jpg" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       .thumb { width:72px; height:72px; object-fit:cover; border-radius:6px; }
@@ -67,7 +69,7 @@
           <h3 class="font-semibold mb-3">Tambah Transaksi</h3>
           <form id="itemForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
             <input id="fieldNama" type="hidden" />
-            <input id="fieldNominal" type="number" placeholder="Nominal (positif/pemasukan, negatif/pengeluaran)" class="p-2 border rounded dark:bg-gray-700" required />
+            <input id="fieldNominal" type="text" placeholder="Nominal (positif/pemasukan, negatif/pengeluaran)" class="p-2 border rounded dark:bg-gray-700" required />
             <input id="fieldKeterangan" type="text" placeholder="Keterangan" class="p-2 border rounded dark:bg-gray-700" />
             <input id="fieldTanggal" type="date" class="p-2 border rounded dark:bg-gray-700" />
 
@@ -101,13 +103,20 @@
       </section>
     </div>
 
+    <!-- DETAIL VIEW -->
+    <div id="detailView" class="hidden min-h-screen flex items-center justify-center p-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-lg">
+        <button onclick="backToDashboard()" class="mb-4 text-blue-600">⬅ Kembali</button>
+        <h2 class="text-xl font-bold mb-4">Detail Transaksi</h2>
+        <div id="detailContent"></div>
+      </div>
+    </div>
+
     <script>
-      // Ganti sesuai deployment backend
       const API_URL = "https://balancing-wop-production.up.railway.app";
       const UPLOAD_ENDPOINT = API_URL + "/upload";
       const ITEMS_ENDPOINT = API_URL + "/items";
 
-      // --- Login (validasi ke backend) ---
       const loginScreen = document.getElementById('loginScreen');
       const app = document.getElementById('app');
 
@@ -145,7 +154,6 @@
 
       if (localStorage.getItem('loggedIn')) showApp();
 
-      // --- Theme ---
       const themeBtn = document.getElementById('btnToggleTheme');
       function applyTheme(theme) {
         if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -160,7 +168,6 @@
         applyTheme(cur === 'dark' ? 'light' : 'dark');
       });
 
-      // --- Helpers ---
       function fmtRp(num){ return 'Rp ' + Number(num).toLocaleString('id-ID'); }
       function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
       function updateUserBadge(){
@@ -173,22 +180,31 @@
         loginScreen.classList.add('hidden');
         app.classList.remove('hidden');
         updateUserBadge();
-
-        // isi otomatis fieldNama pake username login
-        const u = localStorage.getItem('username');
-        document.getElementById('fieldNama').value = u;
-
+        document.getElementById('fieldNama').value = localStorage.getItem('username');
         fetchAndRender();
       }
 
-      // --- Fetch items and render ---
       async function fetchAndRender(){
         try{
           const res = await fetch(ITEMS_ENDPOINT, {
             headers: { 'x-username': localStorage.getItem('username') }
           });
           if (res.status === 401){ alert('Sesi tidak valid / user tidak terdaftar'); return doLogout(); }
-          const items = await res.json();
+          let items = await res.json();
+
+          // filter range
+          const range = document.getElementById('filterRange').value;
+          const today = new Date();
+          if(range === 'today'){
+            items = items.filter(i => i.tanggal === today.toISOString().split('T')[0]);
+          } else if(range === 'week'){
+            const weekAgo = new Date(today); weekAgo.setDate(today.getDate()-7);
+            items = items.filter(i => new Date(i.tanggal) >= weekAgo);
+          } else if(range === 'month'){
+            const monthAgo = new Date(today); monthAgo.setMonth(today.getMonth()-1);
+            items = items.filter(i => new Date(i.tanggal) >= monthAgo);
+          }
+
           render(items);
         }catch(err){ console.error(err); alert('Gagal memuat data'); }
       }
@@ -200,7 +216,6 @@
         document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
         document.getElementById('totalBalance').textContent = fmtRp(income+expense);
 
-        // table desktop
         const tbody = document.getElementById('tableBody'); tbody.innerHTML='';
         items.forEach(it => {
           tbody.innerHTML += `
@@ -209,13 +224,12 @@
               <td class="p-2">${fmtRp(it.nominal||0)}</td>
               <td class="p-2">${escapeHtml(it.keterangan||'-')}</td>
               <td class="p-2">${escapeHtml(it.tanggal||'-')}</td>
-              <td class="p-2">${it.photoUrl?`<a target=_blank href="${it.photoUrl}"><img class='thumb' src='${it.photoUrl}'/></a>`:'-'} </td>
+              <td class="p-2">${it.photoUrl?`<button class="text-blue-600 underline" onclick="viewDetail(${it.id})">Lihat Bukti</button>`:'-'}</td>
               <td class="p-2"><button class="text-red-600" onclick="deleteItem(${it.id})">Hapus</button></td>
             </tr>
           `;
         });
 
-        // cards mobile
         const card = document.getElementById('cardList'); card.innerHTML='';
         items.forEach(it => {
           card.innerHTML += `
@@ -231,7 +245,7 @@
                 </div>
               </div>
               <div class="mt-3 flex items-center gap-3">
-                ${it.photoUrl?`<a target=_blank href="${it.photoUrl}"><img class='thumb' src='${it.photoUrl}'/></a>`:'-'}
+                ${it.photoUrl?`<button class="text-blue-600 underline" onclick="viewDetail(${it.id})">Lihat Bukti</button>`:'-'}
                 <button class="ml-auto text-red-600" onclick="deleteItem(${it.id})">Hapus</button>
               </div>
             </div>
@@ -239,83 +253,57 @@
         });
       }
 
-      // --- Create item + upload ---
+      // format nominal input
+      const nominalInput = document.getElementById('fieldNominal');
+      nominalInput.addEventListener('input', (e) => {
+        let raw = e.target.value.replace(/\D/g,'');
+        if(!raw) { e.target.value = ''; return; }
+        e.target.value = Number(raw).toLocaleString('id-ID');
+      });
+
       document.getElementById('itemForm').addEventListener('submit', async (e)=>{
         e.preventDefault();
         const nama = document.getElementById('fieldNama').value.trim();
-        const nominal = Number(document.getElementById('fieldNominal').value);
+        const nominalRaw = nominalInput.value.replace(/\./g,'').replace(/,/g,'');
+        const nominal = Number(nominalRaw);
         const keterangan = document.getElementById('fieldKeterangan').value.trim();
         const tanggal = document.getElementById('fieldTanggal').value || new Date().toISOString().split('T')[0];
         const file = document.getElementById('fileInput').files[0];
         const statusEl = document.getElementById('uploadStatus'); statusEl.textContent='';
         if(!nama || !nominal){ alert('Nama & nominal wajib diisi'); return; }
 
-        let photoUrl = null;
-        let publicId = null;
+        let photoUrl = null, publicId = null;
         try{
-            if(file){
+          if(file){
             statusEl.textContent = 'Uploading file...';
-            const fd = new FormData(); 
-            fd.append('file', file);
-
-            const up = await fetch(UPLOAD_ENDPOINT, { 
-                method:'POST', 
-                headers: { 'x-username': localStorage.getItem('username') }, 
-                body: fd 
-            });
-
+            const fd = new FormData(); fd.append('file', file);
+            const up = await fetch(UPLOAD_ENDPOINT, { method:'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
             const j = await up.json();
             if(!up.ok) throw new Error(j.error || 'Upload gagal');
-
-            photoUrl = j.link || null;
-            publicId = j.id || null;   // 🔑 ambil public_id juga
+            photoUrl = j.link || null; publicId = j.id || null;
             statusEl.textContent = 'Upload selesai';
-            }
+          }
 
-            const createRes = await fetch(ITEMS_ENDPOINT, { 
-            method: 'POST', 
-            headers: { 
-                'Content-Type':'application/json', 
-                'x-username': localStorage.getItem('username') 
-            }, 
-            body: JSON.stringify({ 
-                nama, 
-                nominal, 
-                keterangan, 
-                tanggal, 
-                photoUrl, 
-                publicId    // 🔑 kirim ke backend
-            })
-            });
+          const createRes = await fetch(ITEMS_ENDPOINT, { 
+            method: 'POST', headers: { 'Content-Type':'application/json','x-username': localStorage.getItem('username') },
+            body: JSON.stringify({ nama, nominal, keterangan, tanggal, photoUrl, publicId })
+          });
+          if(!createRes.ok){ const t = await createRes.text(); throw new Error(t||'Gagal buat item'); }
 
-            if(!createRes.ok){ 
-            const t = await createRes.text(); 
-            throw new Error(t||'Gagal buat item'); 
-            }
+          document.getElementById('itemForm').reset();
+          nominalInput.value = ''; // reset nominal
+          statusEl.textContent = 'Transaksi tersimpan';
+          setTimeout(()=> statusEl.textContent='',2500);
+          fetchAndRender();
+        }catch(err){ console.error(err); alert('Gagal: '+ err.message); statusEl.textContent=''; }
+      });
 
-            document.getElementById('itemForm').reset();
-            statusEl.textContent = 'Transaksi tersimpan';
-            setTimeout(()=> statusEl.textContent='',2500);
-            fetchAndRender();
-
-        }catch(err){ 
-            console.error(err); 
-            alert('Gagal: '+ err.message); 
-            statusEl.textContent=''; 
-        }
-        });
-
-        // --- Delete item ---
-        async function deleteItem(id){ 
+      async function deleteItem(id){ 
         if(!confirm('Hapus transaksi?')) return; 
-        await fetch(ITEMS_ENDPOINT + '/' + id, { 
-            method:'DELETE', 
-            headers: { 'x-username': localStorage.getItem('username') } 
-        });
+        await fetch(ITEMS_ENDPOINT + '/' + id, { method:'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
         fetchAndRender(); 
-        }
+      }
 
-      // --- Export ---
       document.getElementById('btnExportCSV').addEventListener('click', async ()=>{
         const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } }); 
         if (res.status === 401){ alert('Sesi tidak valid / user tidak terdaftar'); return doLogout(); }
@@ -335,9 +323,35 @@
         const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Keuangan'); XLSX.writeFile(wb, 'keuangan.xlsx');
       });
 
+      function viewDetail(id){
+        fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } })
+        .then(r => r.json())
+        .then(items => {
+          const item = items.find(i => i.id == id);
+          if (!item) return alert('Data tidak ditemukan');
+          document.getElementById('detailContent').innerHTML = `
+            <p><b>Nama:</b> ${escapeHtml(item.nama)}</p>
+            <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
+            <p><b>Keterangan:</b> ${escapeHtml(item.keterangan)}</p>
+            <p><b>Tanggal:</b> ${escapeHtml(item.tanggal)}</p>
+            ${item.photoUrl 
+            ? `<div class="mt-4">
+                <a href="${item.photoUrl}" target="_blank">
+                    <img src="${item.photoUrl}" class="w-full rounded-lg shadow"/>
+                </a>
+                </div>` 
+            : `<p class="mt-4 text-gray-500">Tidak ada bukti</p>`}
+          `;
+          document.getElementById('app').classList.add('hidden');
+          document.getElementById('detailView').classList.remove('hidden');
+        });
+      }
+      function backToDashboard(){
+        document.getElementById('detailView').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+      }
       function loadScript(src){ return new Promise((resolve,reject)=>{ const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
 
-      // --- Events ---
       document.getElementById('filterRange').addEventListener('change', fetchAndRender);
       document.getElementById('passInput').addEventListener('keypress', (e)=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
     </script>
