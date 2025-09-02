@@ -6,14 +6,6 @@
     <title>Finance Apps</title>
     <link rel="icon" type="image/png" href="favicon.png" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      .thumb {
-        width: 72px;
-        height: 72px;
-        object-fit: cover;
-        border-radius: 6px;
-      }
-    </style>
   </head>
   <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
 
@@ -41,7 +33,6 @@
           </select>
           <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
           <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
-          <button id="btnToggleTheme" class="hidden px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">🌙</button>
           <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
         </div>
       </nav>
@@ -114,16 +105,6 @@
       </section>
     </div>
 
-    <!-- DETAIL VIEW -->
-    <div id="detailView" class="hidden min-h-screen flex items-center justify-center p-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-lg">
-        <button onclick="backToDashboard()" class="mb-4 text-blue-600">⬅ Kembali</button>
-        <h2 class="text-xl font-bold mb-4">Detail Transaksi</h2>
-        <div id="detailContent"></div>
-      </div>
-    </div>
-
-    <!-- Scripts -->
     <script>
       const API_URL = "https://balancing-wop-production.up.railway.app";
       const UPLOAD_ENDPOINT = API_URL + "/upload";
@@ -132,6 +113,7 @@
       const loginScreen = document.getElementById('loginScreen');
       const app = document.getElementById('app');
 
+      // === LOGIN ===
       document.getElementById('btnLogin').addEventListener('click', async () => {
         const u = (document.getElementById('userInput').value || '').trim();
         const p = document.getElementById('passInput').value || '';
@@ -150,47 +132,55 @@
           showApp();
         } catch (e) { alert(e.message); }
       });
-
-      document.getElementById('btnLogout').addEventListener('click', doLogout);
-      function doLogout() {
-        localStorage.clear();
-        location.reload();
-      }
+      document.getElementById('btnLogout').addEventListener('click', () => { localStorage.clear(); location.reload(); });
       if (localStorage.getItem('loggedIn')) showApp();
 
-      // Theme
-      const themeBtn = document.getElementById('btnToggleTheme');
-      function applyTheme(theme) {
-        if (theme === 'dark') document.documentElement.classList.add('dark');
-        else document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', theme);
+      // === THEME AUTO BY TIME ===
+      function applyThemeByTime() {
+        const hour = new Date().getHours();
+        if (hour >= 6 && hour < 18) {
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.add('dark');
+        }
       }
-      const userPref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      applyTheme(localStorage.getItem('theme') || userPref);
-      themeBtn.addEventListener('click', () => {
-        const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        applyTheme(cur === 'dark' ? 'light' : 'dark');
-      });
+      applyThemeByTime();
 
-      // Formatter
+      // === HELPERS ===
       function fmtRp(num) { return 'Rp ' + Number(num).toLocaleString('id-ID'); }
       function escapeHtml(s) { return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
-      // Show dashboard
       function showApp() {
         loginScreen.classList.add('hidden');
         app.classList.remove('hidden');
         fetchAndRender();
       }
 
-      // Fetch & render
+      // === FETCH DATA ===
       async function fetchAndRender() {
         const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
-        if (res.status === 401) return doLogout();
-        const items = await res.json();
+        if (res.status === 401) return location.reload();
+        let items = await res.json();
+
+        const range = document.getElementById('filterRange').value;
+        const today = new Date();
+
+        if (range === 'today') {
+          const todayStr = today.toISOString().split('T')[0];
+          items = items.filter(i => i.tanggal === todayStr);
+        } else if (range === 'week') {
+          const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
+          items = items.filter(i => new Date(i.tanggal) >= weekAgo);
+        } else if (range === 'month') {
+          const monthAgo = new Date(today); monthAgo.setMonth(today.getMonth() - 1);
+          items = items.filter(i => new Date(i.tanggal) >= monthAgo);
+        }
+
         render(items);
       }
+      document.getElementById('filterRange').addEventListener('change', fetchAndRender);
 
+      // === RENDER DATA ===
       function render(items) {
         let income = 0, expense = 0;
         items.forEach(i => { const n = Number(i.nominal) || 0; if (n > 0) income += n; else expense += n; });
@@ -202,7 +192,6 @@
         const card = document.getElementById('cardList'); card.innerHTML = '';
 
         items.forEach(it => {
-          // Desktop row
           tbody.innerHTML += `
             <tr class="border-b">
               <td class="p-2 ${it.nominal >= 0 ? 'text-green-600' : 'text-red-600'}">${fmtRp(it.nominal)}</td>
@@ -210,9 +199,7 @@
               <td class="p-2">${escapeHtml(it.tanggal || '-')}</td>
               <td class="p-2 text-center">${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-500 underline">Lihat</a>` : '-'}</td>
               <td class="p-2 text-center"><button onclick="deleteItem(${it.id})" class="text-red-600">Hapus</button></td>
-            </tr>
-          `;
-          // Mobile card
+            </tr>`;
           card.innerHTML += `
             <div class="bg-gray-700 p-4 rounded-lg shadow">
               <div class="flex justify-between">
@@ -224,12 +211,11 @@
                 ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
                 <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
               </div>
-            </div>
-          `;
+            </div>`;
         });
       }
 
-      // Nominal formatter
+      // === NOMINAL FORMAT ===
       const nominalInput = document.getElementById('fieldNominal');
       nominalInput.addEventListener('input', (e) => {
         let raw = e.target.value.replace(/\D/g, '');
@@ -237,7 +223,7 @@
         e.target.value = Number(raw).toLocaleString('id-ID');
       });
 
-      // Form submit
+      // === FORM SUBMIT ===
       document.getElementById('itemForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const nominalRaw = nominalInput.value.replace(/\./g, '').replace(/,/g, '');
@@ -254,35 +240,47 @@
             statusEl.textContent = 'Uploading...';
             const fd = new FormData(); fd.append('file', file);
             const up = await fetch(UPLOAD_ENDPOINT, { method: 'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
-            const j = await up.json();
-            if (!up.ok) throw new Error(j.error || 'Upload gagal');
+            const j = await up.json(); if (!up.ok) throw new Error(j.error || 'Upload gagal');
             photoUrl = j.link || null; publicId = j.id || null;
             statusEl.textContent = 'Upload selesai';
           }
-
           const createRes = await fetch(ITEMS_ENDPOINT, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': localStorage.getItem('username') },
             body: JSON.stringify({ nama: localStorage.getItem('username'), nominal, keterangan, tanggal, photoUrl, publicId })
           });
           if (!createRes.ok) throw new Error(await createRes.text());
-          document.getElementById('itemForm').reset();
-          nominalInput.value = '';
-          statusEl.textContent = 'Transaksi tersimpan';
-          setTimeout(() => statusEl.textContent = '', 2000);
+          document.getElementById('itemForm').reset(); nominalInput.value = '';
+          statusEl.textContent = 'Transaksi tersimpan'; setTimeout(() => statusEl.textContent = '', 2000);
           fetchAndRender();
-        } catch (err) { console.error(err); alert('Gagal: ' + err.message); statusEl.textContent = ''; }
+        } catch (err) { alert('Gagal: ' + err.message); statusEl.textContent = ''; }
       });
 
+      // === DELETE ===
       async function deleteItem(id) {
         if (!confirm('Hapus transaksi?')) return;
         await fetch(ITEMS_ENDPOINT + '/' + id, { method: 'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
         fetchAndRender();
       }
 
-      function backToDashboard() {
-        document.getElementById('detailView').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-      }
+      // === EXPORT ===
+      document.getElementById('btnExportCSV').addEventListener('click', async () => {
+        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
+        const data = await res.json(); if (!data.length) return alert('Data kosong');
+        const headers = ['Nominal','Keterangan','Tanggal','PhotoUrl'];
+        const rows = data.map(i => [i.nominal,i.keterangan,i.tanggal,i.photoUrl||'']);
+        const csv = [headers, ...rows].map(r => r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
+        const a=document.createElement('a'); a.href=url; a.download='keuangan.csv'; a.click(); URL.revokeObjectURL(url);
+      });
+
+      document.getElementById('btnExportExcel').addEventListener('click', async () => {
+        if (typeof XLSX === 'undefined') await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
+        const data = await res.json(); if (!data.length) return alert('Data kosong');
+        const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Keuangan'); XLSX.writeFile(wb, 'keuangan.xlsx');
+      });
+      function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
     </script>
   </body>
 </html>
