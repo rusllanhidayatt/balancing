@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.balancing.finance",
+        "sha256_cert_fingerprints": ["83:4C:3B:71:15:23:31:65:41:48:DB:6A:D9:3A:B3:63:F5:F8:69:49:79:C7:AD:0E:BD:85:1A:9D:9F:4C:18:63"]
+      }
+    }]
