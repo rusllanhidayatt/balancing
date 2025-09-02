@@ -103,7 +103,7 @@
     <script>
       // Ganti sesuai deployment backend
       const API_URL = "https://balancing-wop-production.up.railway.app";
-      const UPLOAD_ENDPOINT = API_URL + "/upload";
+      const UPLOAD_ENDPOINT = API_URL + "/upload-local";
       const ITEMS_ENDPOINT = API_URL + "/items";
 
       // --- Login (validasi ke backend) ---
@@ -252,7 +252,7 @@
             const up = await fetch(UPLOAD_ENDPOINT, { method:'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
             const j = await up.json();
             if(!up.ok) throw new Error(j.error || 'Upload gagal');
-            photoUrl = j.link || j.direct || null;
+            photoUrl = j.url || null;
             statusEl.textContent = 'Upload selesai';
           }
 
