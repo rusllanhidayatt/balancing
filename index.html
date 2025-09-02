@@ -7,6 +7,8 @@
     <link rel="icon" type="image/jpeg" href="favicon.jpg" />
     <link rel="icon" href="favicon.jpg" sizes="32x32" />
     <link rel="apple-touch-icon" href="favicon.jpg" />
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       .thumb { width:72px; height:72px; object-fit:cover; border-radius:6px; }
@@ -354,6 +356,13 @@
 
       document.getElementById('filterRange').addEventListener('change', fetchAndRender);
       document.getElementById('passInput').addEventListener('keypress', (e)=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
+    </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("service-worker.js")
+          .then(() => console.log("✅ Service Worker registered"))
+          .catch(err => console.error("SW registration failed:", err));
+      }
     </script>
   </body>
 </html>
