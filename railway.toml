@@ -6,8 +6,7 @@ builder = "NIXPACKS"
 nixPkgs = ["nodejs", "npm"]
 
 [phases.build]
-# ganti npm ci -> npm install (lebih fleksibel, gak strict sama package-lock.json)
-cmds = ["npm install"]
+cmds = ["npm install", "npm run build"]
 
 [start]
-cmd = "npm start"
+cmd = "npm run start"
