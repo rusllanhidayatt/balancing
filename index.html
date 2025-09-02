@@ -68,60 +68,49 @@
         </div>
 
         <!-- Tambah Transaksi -->
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-4xl mx-auto mt-6">
-        <h2 class="text-lg font-semibold mb-4 text-white">Tambah Transaksi</h2>
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-4xl mx-auto mt-8 mb-10">
+        <h2 class="text-lg font-semibold mb-6 text-white">Tambah Transaksi</h2>
 
         <!-- Grid input -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input
-            type="number"
-            placeholder="Nominal (positif/pemasukan)"
-            class="w-full h-10 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
-            />
-            <input
-            type="text"
-            placeholder="Keterangan"
-            class="w-full h-10 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
-            />
-            <input
-            type="date"
-            class="w-full h-10 px-3 rounded bg-gray-700 text-white"
-            />
-            <input
-            type="file"
-            class="w-full h-10 text-sm text-gray-300
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input type="number" placeholder="Nominal (positif/pemasukan)"
+            class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
+            <input type="text" placeholder="Keterangan"
+            class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
+            <input type="date"
+            class="w-full h-11 px-3 rounded bg-gray-700 text-white" />
+            <input type="file"
+            class="w-full h-11 text-sm text-gray-300
                     file:mr-4 file:py-2 file:px-4
                     file:rounded-lg file:border-0
                     file:bg-blue-600 file:text-white
-                    hover:file:bg-blue-700"
-            />
+                    hover:file:bg-blue-700" />
         </div>
 
         <!-- Tombol -->
-        <div class="flex justify-end mt-4">
+        <div class="flex justify-end mt-6">
             <button
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-            >
+            class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
             Tambah & Upload
             </button>
         </div>
         </div>
 
         <!-- table desktop -->
-        <div class="hidden md:block bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
-          <table class="min-w-full">
+        <div class="hidden md:block bg-white dark:bg-gray-800 p-6 rounded-xl shadow mb-10">
+        <table class="min-w-full">
             <thead class="text-left text-gray-600 dark:text-gray-300">
-              <tr>
-                <th class="p-2">Nama</th>
-                <th class="p-2">Nominal</th>
-                <th class="p-2">Keterangan</th>
-                <th class="p-2">Tanggal</th>
-                <th class="p-2">Bukti</th>
-                <th class="p-2">Aksi</th>
-              </tr>
+            <tr>
+                <th class="p-3">Nama</th>
+                <th class="p-3">Nominal</th>
+                <th class="p-3">Keterangan</th>
+                <th class="p-3">Tanggal</th>
+                <th class="p-3">Bukti</th>
+                <th class="p-3">Aksi</th>
+            </tr>
             </thead>
             <tbody id="tableBody"></tbody>
-          </table>
+        </table>
         </div>
 
         <!-- cards mobile -->
