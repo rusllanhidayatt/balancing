@@ -5,15 +5,17 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Finance Apps</title>
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="apple-touch-icon" href="favicon.png" />
-    <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#2563eb" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      .thumb { width:72px; height:72px; object-fit:cover; border-radius:6px; }
+      .thumb {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 6px;
+      }
     </style>
   </head>
-  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">
+  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
 
     <!-- LOGIN SCREEN -->
     <main id="loginScreen" class="min-h-screen flex items-center justify-center">
@@ -22,36 +24,32 @@
         <input id="userInput" class="w-full p-3 mb-3 rounded border dark:bg-gray-700" placeholder="username" />
         <input id="passInput" type="password" class="w-full p-3 mb-4 rounded border dark:bg-gray-700" placeholder="password" />
         <button id="btnLogin" class="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700">Masuk</button>
-        <p class="text-sm text-center text-gray-500 mt-3">Akun tersimpan di device sampai kamu logout</p>
       </div>
     </main>
 
     <!-- DASHBOARD -->
     <div id="app" class="hidden">
-      <!-- navbar -->
+      <!-- Navbar -->
       <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <!-- kiri -->
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-            <h1 class="font-bold text-lg">📊 Balancing — Keuangan</h1>
-            <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
+        <h1 class="font-bold text-lg">📊 Balancing — Keuangan</h1>
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
             <option value="all">Semua</option>
             <option value="today">Hari ini</option>
             <option value="week">Minggu ini</option>
             <option value="month">Bulan ini</option>
-            </select>
-        </div>
-
-        <!-- kanan -->
-        <div class="flex flex-wrap items-center gap-2">
-            <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
-            <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
-            <button id="btnToggleTheme" class="hidden px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">🌙</button>
-            <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
+          </select>
+          <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
+          <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
+          <button id="btnToggleTheme" class="hidden px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">🌙</button>
+          <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
         </div>
       </nav>
 
+      <!-- Content -->
       <section class="max-w-5xl mx-auto p-6">
-        <!-- summary -->
+
+        <!-- Summary -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
             <p class="text-sm text-gray-500">Pemasukan</p>
@@ -67,91 +65,52 @@
           </div>
         </div>
 
-        <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg max-w-5xl mx-auto mt-6">
-        <h2 class="text-xl font-semibold mb-4">Tambah Transaksi</h2>
-        <form id="formTransaksi" class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            
-            <!-- Nama -->
-            <input
-            id="fieldNama"
-            type="text"
-            placeholder="Nama transaksi"
-            class="w-full h-10 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
-            />
-
-            <!-- Nominal -->
-            <input
-            id="fieldNominal"
-            type="text"
-            inputmode="numeric"
-            placeholder="Nominal (positif/pemasukan)"
-            class="w-full h-10 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
-            />
-
-            <!-- Keterangan -->
-            <input
-            id="fieldKeterangan"
-            type="text"
-            placeholder="Keterangan"
-            class="w-full h-10 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
-            />
-
-            <!-- Tanggal -->
-            <input
-            id="fieldTanggal"
-            type="date"
-            class="w-full h-10 px-3 rounded bg-gray-700 text-white"
-            />
-
-            <!-- Upload -->
-            <input
-            id="fieldFile"
-            type="file"
-            accept="image/*"
-            class="w-full h-10 text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full 
-                    file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white 
-                    hover:file:bg-blue-500"
-            />
-
-            <!-- Submit -->
-            <button
-            id="btnSubmit"
-            type="submit"
-            class="md:col-span-4 w-full bg-green-600 hover:bg-green-500 py-2 rounded text-white font-semibold"
-            >
-            Simpan Transaksi
+        <!-- Form Tambah Transaksi -->
+        <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg max-w-3xl mx-auto mt-6 mb-10">
+          <h2 class="text-xl font-semibold mb-4">Tambah Transaksi</h2>
+          <form id="itemForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input id="fieldNominal" type="text" inputmode="numeric"
+              placeholder="Nominal (positif/pemasukan)"
+              class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
+            <input id="fieldKeterangan" type="text" placeholder="Keterangan"
+              class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
+            <input id="fieldTanggal" type="date"
+              class="w-full h-11 px-3 rounded bg-gray-700 text-white" />
+            <input id="fileInput" type="file" accept="image/*"
+              class="md:col-span-2 w-full h-11 text-sm text-gray-300
+                     file:mr-4 file:py-2 file:px-4
+                     file:rounded-lg file:border-0
+                     file:bg-blue-600 file:text-white
+                     hover:file:bg-blue-700" />
+            <button id="submitBtn" type="submit"
+              class="md:col-span-1 w-full bg-green-600 hover:bg-green-500 py-2 rounded text-white font-semibold">
+              Simpan
             </button>
-        </form>
+          </form>
+          <p id="uploadStatus" class="text-sm text-gray-400 mt-2"></p>
         </div>
 
-        <!-- Tombol -->
-        <div class="flex justify-end mt-6">
-            <button
-            class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-            Tambah & Upload
-            </button>
-        </div>
-        </div>
-
-        <!-- table desktop -->
-        <div class="hidden md:block bg-white dark:bg-gray-800 p-6 rounded-xl shadow mb-10">
-        <table class="min-w-full">
-            <thead class="text-left text-gray-600 dark:text-gray-300">
-            <tr>
-                <th class="p-3">Nama</th>
-                <th class="p-3">Nominal</th>
-                <th class="p-3">Keterangan</th>
-                <th class="p-3">Tanggal</th>
-                <th class="p-3">Bukti</th>
-                <th class="p-3">Aksi</th>
-            </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+        <!-- List Transaksi -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow max-w-5xl mx-auto mb-10">
+          <!-- Table Desktop -->
+          <div class="hidden md:block overflow-x-auto">
+            <table class="min-w-full border-collapse">
+              <thead class="bg-gray-100 dark:bg-gray-700">
+                <tr>
+                  <th class="p-3 text-left">Nominal</th>
+                  <th class="p-3 text-left">Keterangan</th>
+                  <th class="p-3 text-left">Tanggal</th>
+                  <th class="p-3 text-center">Bukti</th>
+                  <th class="p-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
+            </table>
+          </div>
+          <!-- Cards Mobile -->
+          <div id="cardList" class="md:hidden space-y-3 mt-4"></div>
         </div>
 
-        <!-- cards mobile -->
-        <div id="cardList" class="md:hidden space-y-3 mt-4"></div>
       </section>
     </div>
 
@@ -164,6 +123,7 @@
       </div>
     </div>
 
+    <!-- Scripts -->
     <script>
       const API_URL = "https://balancing-wop-production.up.railway.app";
       const UPLOAD_ENDPOINT = API_URL + "/upload";
@@ -176,36 +136,29 @@
         const u = (document.getElementById('userInput').value || '').trim();
         const p = document.getElementById('passInput').value || '';
         if (!u) return alert('Masukkan username');
-        if (p !== 'fenisayangruslan') return alert('Password salah keles minta ke ruslan ganteng!');
+        if (p !== 'fenisayangruslan') return alert('Password salah!');
         try {
           const res = await fetch(API_URL + '/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: u })
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Login gagal');
-
           localStorage.setItem('loggedIn', 'true');
           localStorage.setItem('username', data.user.username);
           localStorage.setItem('role', data.user.role);
           showApp();
-        } catch (e) {
-          alert(e.message);
-        }
+        } catch (e) { alert(e.message); }
       });
 
       document.getElementById('btnLogout').addEventListener('click', doLogout);
-
-      function doLogout(){
-        localStorage.removeItem('loggedIn');
-        localStorage.removeItem('username');
-        localStorage.removeItem('role');
+      function doLogout() {
+        localStorage.clear();
         location.reload();
       }
-
       if (localStorage.getItem('loggedIn')) showApp();
 
+      // Theme
       const themeBtn = document.getElementById('btnToggleTheme');
       function applyTheme(theme) {
         if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -213,205 +166,122 @@
         localStorage.setItem('theme', theme);
       }
       const userPref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      const savedTheme = localStorage.getItem('theme') || userPref;
-      applyTheme(savedTheme);
+      applyTheme(localStorage.getItem('theme') || userPref);
       themeBtn.addEventListener('click', () => {
         const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         applyTheme(cur === 'dark' ? 'light' : 'dark');
       });
 
-      function fmtRp(num){ return 'Rp ' + Number(num).toLocaleString('id-ID'); }
-      function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-      function updateUserBadge(){
-        const u = localStorage.getItem('username') || '-';
-        const r = localStorage.getItem('role') || (u==='admin'?'admin':'user');
-        const el = document.getElementById('currentUser');
-        if (el) el.textContent = `👤 ${u} (${r})`;
-      }
-      function showApp(){
+      // Formatter
+      function fmtRp(num) { return 'Rp ' + Number(num).toLocaleString('id-ID'); }
+      function escapeHtml(s) { return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+      // Show dashboard
+      function showApp() {
         loginScreen.classList.add('hidden');
         app.classList.remove('hidden');
-        updateUserBadge();
-        document.getElementById('fieldNama').value = localStorage.getItem('username');
         fetchAndRender();
       }
 
-      async function fetchAndRender(){
-        try{
-          const res = await fetch(ITEMS_ENDPOINT, {
-            headers: { 'x-username': localStorage.getItem('username') }
-          });
-          if (res.status === 401){ alert('Sesi tidak valid / user tidak terdaftar'); return doLogout(); }
-          let items = await res.json();
-
-          // filter range
-          const range = document.getElementById('filterRange').value;
-          const today = new Date();
-          if(range === 'today'){
-            items = items.filter(i => i.tanggal === today.toISOString().split('T')[0]);
-          } else if(range === 'week'){
-            const weekAgo = new Date(today); weekAgo.setDate(today.getDate()-7);
-            items = items.filter(i => new Date(i.tanggal) >= weekAgo);
-          } else if(range === 'month'){
-            const monthAgo = new Date(today); monthAgo.setMonth(today.getMonth()-1);
-            items = items.filter(i => new Date(i.tanggal) >= monthAgo);
-          }
-
-          render(items);
-        }catch(err){ console.error(err); alert('Gagal memuat data'); }
+      // Fetch & render
+      async function fetchAndRender() {
+        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
+        if (res.status === 401) return doLogout();
+        const items = await res.json();
+        render(items);
       }
 
-      function render(items){
-        let income=0, expense=0;
-        items.forEach(i => { const n = Number(i.nominal)||0; if (n>0) income+=n; else expense+=n; });
+      function render(items) {
+        let income = 0, expense = 0;
+        items.forEach(i => { const n = Number(i.nominal) || 0; if (n > 0) income += n; else expense += n; });
         document.getElementById('totalIncome').textContent = fmtRp(income);
         document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
-        document.getElementById('totalBalance').textContent = fmtRp(income+expense);
+        document.getElementById('totalBalance').textContent = fmtRp(income + expense);
 
-        const tbody = document.getElementById('tableBody'); tbody.innerHTML='';
+        const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
+        const card = document.getElementById('cardList'); card.innerHTML = '';
+
         items.forEach(it => {
+          // Desktop row
           tbody.innerHTML += `
-            <tr class="border-b align-top">
-              <td class="p-2">${escapeHtml(it.nama||'-')}</td>
-              <td class="p-2">${fmtRp(it.nominal||0)}</td>
-              <td class="p-2">${escapeHtml(it.keterangan||'-')}</td>
-              <td class="p-2">${escapeHtml(it.tanggal||'-')}</td>
-              <td class="p-2">${it.photoUrl?`<button class="text-blue-600 underline" onclick="viewDetail(${it.id})">Lihat Bukti</button>`:'-'}</td>
-              <td class="p-2"><button class="text-red-600" onclick="deleteItem(${it.id})">Hapus</button></td>
+            <tr class="border-b">
+              <td class="p-2 ${it.nominal >= 0 ? 'text-green-600' : 'text-red-600'}">${fmtRp(it.nominal)}</td>
+              <td class="p-2">${escapeHtml(it.keterangan || '-')}</td>
+              <td class="p-2">${escapeHtml(it.tanggal || '-')}</td>
+              <td class="p-2 text-center">${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-500 underline">Lihat</a>` : '-'}</td>
+              <td class="p-2 text-center"><button onclick="deleteItem(${it.id})" class="text-red-600">Hapus</button></td>
             </tr>
           `;
-        });
-
-        const card = document.getElementById('cardList'); card.innerHTML='';
-        items.forEach(it => {
+          // Mobile card
           card.innerHTML += `
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
-              <div class="flex justify-between items-start">
-                <div>
-                  <div class="font-bold">${escapeHtml(it.nama||'-')}</div>
-                  <div class="text-sm text-gray-500">${escapeHtml(it.keterangan||'-')}</div>
-                </div>
-                <div class="text-right">
-                  <div class="font-semibold ${Number(it.nominal)>=0? 'text-green-600':'text-red-500'}">${fmtRp(it.nominal||0)}</div>
-                  <div class="text-xs text-gray-400">${escapeHtml(it.tanggal||'-')}</div>
-                </div>
+            <div class="bg-gray-700 p-4 rounded-lg shadow">
+              <div class="flex justify-between">
+                <span>${escapeHtml(it.tanggal || '-')}</span>
+                <span class="${it.nominal >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${fmtRp(it.nominal)}</span>
               </div>
-              <div class="mt-3 flex items-center gap-3">
-                ${it.photoUrl?`<button class="text-blue-600 underline" onclick="viewDetail(${it.id})">Lihat Bukti</button>`:'-'}
-                <button class="ml-auto text-red-600" onclick="deleteItem(${it.id})">Hapus</button>
+              <p class="text-sm mt-2">${escapeHtml(it.keterangan || '-')}</p>
+              <div class="flex justify-between mt-3 text-sm">
+                ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
+                <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
               </div>
             </div>
           `;
         });
       }
 
-      // format nominal input
+      // Nominal formatter
       const nominalInput = document.getElementById('fieldNominal');
       nominalInput.addEventListener('input', (e) => {
-        let raw = e.target.value.replace(/\D/g,'');
-        if(!raw) { e.target.value = ''; return; }
+        let raw = e.target.value.replace(/\D/g, '');
+        if (!raw) { e.target.value = ''; return; }
         e.target.value = Number(raw).toLocaleString('id-ID');
       });
 
-      document.getElementById('itemForm').addEventListener('submit', async (e)=>{
+      // Form submit
+      document.getElementById('itemForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nama = document.getElementById('fieldNama').value.trim();
-        const nominalRaw = nominalInput.value.replace(/\./g,'').replace(/,/g,'');
+        const nominalRaw = nominalInput.value.replace(/\./g, '').replace(/,/g, '');
         const nominal = Number(nominalRaw);
         const keterangan = document.getElementById('fieldKeterangan').value.trim();
         const tanggal = document.getElementById('fieldTanggal').value || new Date().toISOString().split('T')[0];
         const file = document.getElementById('fileInput').files[0];
-        const statusEl = document.getElementById('uploadStatus'); statusEl.textContent='';
-        if(!nama || !nominal){ alert('Nama & nominal wajib diisi'); return; }
+        const statusEl = document.getElementById('uploadStatus'); statusEl.textContent = '';
+        if (!nominal) return alert('Nominal wajib diisi');
 
         let photoUrl = null, publicId = null;
-        try{
-          if(file){
-            statusEl.textContent = 'Uploading file...';
+        try {
+          if (file) {
+            statusEl.textContent = 'Uploading...';
             const fd = new FormData(); fd.append('file', file);
-            const up = await fetch(UPLOAD_ENDPOINT, { method:'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
+            const up = await fetch(UPLOAD_ENDPOINT, { method: 'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
             const j = await up.json();
-            if(!up.ok) throw new Error(j.error || 'Upload gagal');
+            if (!up.ok) throw new Error(j.error || 'Upload gagal');
             photoUrl = j.link || null; publicId = j.id || null;
             statusEl.textContent = 'Upload selesai';
           }
 
-          const createRes = await fetch(ITEMS_ENDPOINT, { 
-            method: 'POST', headers: { 'Content-Type':'application/json','x-username': localStorage.getItem('username') },
-            body: JSON.stringify({ nama, nominal, keterangan, tanggal, photoUrl, publicId })
+          const createRes = await fetch(ITEMS_ENDPOINT, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': localStorage.getItem('username') },
+            body: JSON.stringify({ nama: localStorage.getItem('username'), nominal, keterangan, tanggal, photoUrl, publicId })
           });
-          if(!createRes.ok){ const t = await createRes.text(); throw new Error(t||'Gagal buat item'); }
-
+          if (!createRes.ok) throw new Error(await createRes.text());
           document.getElementById('itemForm').reset();
-          nominalInput.value = ''; // reset nominal
+          nominalInput.value = '';
           statusEl.textContent = 'Transaksi tersimpan';
-          setTimeout(()=> statusEl.textContent='',2500);
+          setTimeout(() => statusEl.textContent = '', 2000);
           fetchAndRender();
-        }catch(err){ console.error(err); alert('Gagal: '+ err.message); statusEl.textContent=''; }
+        } catch (err) { console.error(err); alert('Gagal: ' + err.message); statusEl.textContent = ''; }
       });
 
-      async function deleteItem(id){ 
-        if(!confirm('Hapus transaksi?')) return; 
-        await fetch(ITEMS_ENDPOINT + '/' + id, { method:'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
-        fetchAndRender(); 
+      async function deleteItem(id) {
+        if (!confirm('Hapus transaksi?')) return;
+        await fetch(ITEMS_ENDPOINT + '/' + id, { method: 'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
+        fetchAndRender();
       }
 
-      document.getElementById('btnExportCSV').addEventListener('click', async ()=>{
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } }); 
-        if (res.status === 401){ alert('Sesi tidak valid / user tidak terdaftar'); return doLogout(); }
-        const data = await res.json(); if(!data.length){ alert('Data kosong'); return; }
-        const headers = ['Nama','Nominal','Keterangan','Tanggal','PhotoUrl'];
-        const rows = data.map(i => [i.nama,i.nominal,i.keterangan,i.tanggal,i.photoUrl||'']);
-        const csv = [headers, ...rows].map(r => r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='keuangan.csv'; a.click(); URL.revokeObjectURL(url);
-      });
-
-      document.getElementById('btnExportExcel').addEventListener('click', async ()=>{
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } }); 
-        if (res.status === 401){ alert('Sesi tidak valid / user tidak terdaftar'); return doLogout(); }
-        const data = await res.json(); if(!data.length){ alert('Data kosong'); return; }
-        if(typeof XLSX === 'undefined'){ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); }
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Keuangan'); XLSX.writeFile(wb, 'keuangan.xlsx');
-      });
-
-      function viewDetail(id){
-        fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } })
-        .then(r => r.json())
-        .then(items => {
-          const item = items.find(i => i.id == id);
-          if (!item) return alert('Data tidak ditemukan');
-          document.getElementById('detailContent').innerHTML = `
-            <p><b>Nama:</b> ${escapeHtml(item.nama)}</p>
-            <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
-            <p><b>Keterangan:</b> ${escapeHtml(item.keterangan)}</p>
-            <p><b>Tanggal:</b> ${escapeHtml(item.tanggal)}</p>
-            ${item.photoUrl 
-            ? `<div class="mt-4">
-                <a href="${item.photoUrl}" target="_blank">
-                    <img src="${item.photoUrl}" class="w-full rounded-lg shadow"/>
-                </a>
-                </div>` 
-            : `<p class="mt-4 text-gray-500">Tidak ada bukti</p>`}
-          `;
-          document.getElementById('app').classList.add('hidden');
-          document.getElementById('detailView').classList.remove('hidden');
-        });
-      }
-      function backToDashboard(){
+      function backToDashboard() {
         document.getElementById('detailView').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
-      }
-      function loadScript(src){ return new Promise((resolve,reject)=>{ const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
-
-      document.getElementById('filterRange').addEventListener('change', fetchAndRender);
-      document.getElementById('passInput').addEventListener('keypress', (e)=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
-    </script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("service-worker.js")
-          .then(() => console.log("✅ Service Worker registered"))
-          .catch(err => console.error("SW registration failed:", err));
       }
     </script>
   </body>
