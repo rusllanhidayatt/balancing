@@ -4,25 +4,12 @@
 builder = "NIXPACKS"
 
 [phases.setup]
-# Node + npm + dependency untuk "sharp" (libvips)
-nixPkgs = ["nodejs", "npm", "pkg-config", "libvips"]
+nixPkgs = ["nodejs", "npm"]
 
 [phases.build]
-# install deps + build (kalau ada)
-cmds = [
-  "npm install",
-  "npm run build"
-]
-
-[deploy]
-# Opsional: jalanin migrasi, setup, dsb sebelum start
-# preDeploy = "npm run migrate"
+# Gunakan npm install biar fleksibel, tidak strict kayak npm ci
+cmds = ["npm install"]
 
 [start]
-# Command untuk jalanin app kamu
+# Jalankan server Express
 cmd = "npm run start"
-
-[env]
-# Tambahin env default (bisa di override di Railway Dashboard)
-PORT = "3000"
-NODE_ENV = "production"
