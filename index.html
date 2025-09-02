@@ -1,84 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CRUD JSON Railway</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { color: #333; }
-    form { margin-bottom: 20px; }
-    input, button { padding: 8px; margin: 4px; }
-    .item { padding: 10px; border: 1px solid #ddd; margin-bottom: 5px; }
-  </style>
-</head>
-<body>
-  <h1>CRUD Demo (Railway)</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Keuangan App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-5xl bg-white shadow-lg rounded-xl p-6">
+      <h1 class="text-3xl font-bold text-center mb-6 text-blue-600">
+        💰 Dashboard Keuangan
+      </h1>
 
-  <form id="createForm">
-    <input type="text" id="name" placeholder="Enter item name" required />
-    <button type="submit">Add Item</button>
-  </form>
+      <!-- Ringkasan -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
+        <div class="p-4 bg-green-100 rounded-lg shadow">
+          <h2 class="text-lg font-semibold text-green-700">Pemasukan</h2>
+          <p id="pemasukan" class="text-2xl font-bold text-green-600">Rp 0</p>
+        </div>
+        <div class="p-4 bg-red-100 rounded-lg shadow">
+          <h2 class="text-lg font-semibold text-red-700">Pengeluaran</h2>
+          <p id="pengeluaran" class="text-2xl font-bold text-red-600">Rp 0</p>
+        </div>
+        <div class="p-4 bg-blue-100 rounded-lg shadow">
+          <h2 class="text-lg font-semibold text-blue-700">Saldo</h2>
+          <p id="saldo" class="text-2xl font-bold text-blue-600">Rp 0</p>
+        </div>
+      </div>
 
-  <div id="items"></div>
+      <!-- Form Input -->
+      <form
+        id="form"
+        class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end"
+      >
+        <div>
+          <label class="block text-sm font-medium">Nama</label>
+          <input
+            type="text"
+            id="nama"
+            required
+            class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Nominal</label>
+          <input
+            type="number"
+            id="nominal"
+            required
+            placeholder="contoh: 500000 (positif = pemasukan, negatif = pengeluaran)"
+            class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Keterangan</label>
+          <input
+            type="text"
+            id="keterangan"
+            class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <button
+          type="submit"
+          class="md:col-span-3 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+        >
+          + Tambah Transaksi
+        </button>
+      </form>
 
-  <script>
-    const API_URL = "https://balancing-wop-production.up.railway.app/items";
+      <!-- Tabel -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full border border-gray-200 rounded-lg">
+          <thead class="bg-blue-100">
+            <tr>
+              <th class="px-4 py-2 border">Nama</th>
+              <th class="px-4 py-2 border">Nominal</th>
+              <th class="px-4 py-2 border">Keterangan</th>
+              <th class="px-4 py-2 border">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="itemsTable" class="text-center"></tbody>
+        </table>
+      </div>
+    </div>
 
-    async function fetchItems() {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      renderItems(data);
-    }
+    <script>
+      const API_URL =
+        "https://balancing-wop-production.up.railway.app/items";
 
-    async function createItem(name) {
-      await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      fetchItems();
-    }
-
-    async function updateItem(id, newName) {
-      await fetch(`${API_URL}/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName }),
-      });
-      fetchItems();
-    }
-
-    async function deleteItem(id) {
-      await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-      fetchItems();
-    }
-
-    function renderItems(items) {
-      const container = document.getElementById("items");
-      container.innerHTML = "";
-      items.forEach((item) => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `
-          <strong>${item.name}</strong>
-          <button onclick="updateItem('${item.id}', prompt('New name:', '${item.name}'))">Edit</button>
-          <button onclick="deleteItem('${item.id}')">Delete</button>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    document.getElementById("createForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const name = document.getElementById("name").value;
-      if (name) {
-        createItem(name);
-        document.getElementById("name").value = "";
+      function formatRupiah(num) {
+        return "Rp " + num.toLocaleString("id-ID");
       }
-    });
 
-    fetchItems();
-  </script>
-</body>
+      async function fetchItems() {
+        const res = await fetch(API_URL);
+        const items = await res.json();
+        const tbody = document.getElementById("itemsTable");
+        tbody.innerHTML = "";
+
+        let pemasukan = 0,
+          pengeluaran = 0;
+
+        items.forEach((item) => {
+          const nominal = Number(item.nominal) || 0;
+          if (nominal > 0) pemasukan += nominal;
+          else pengeluaran += nominal;
+
+          tbody.innerHTML += `
+            <tr>
+              <td class="border px-4 py-2">${item.nama}</td>
+              <td class="border px-4 py-2 ${nominal < 0 ? "text-red-600" : "text-green-600"}">
+                ${formatRupiah(nominal)}
+              </td>
+              <td class="border px-4 py-2">${item.keterangan || "-"}</td>
+              <td class="border px-4 py-2">
+                <button onclick="deleteItem(${item.id})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Hapus</button>
+              </td>
+            </tr>`;
+        });
+
+        document.getElementById("pemasukan").textContent = formatRupiah(pemasukan);
+        document.getElementById("pengeluaran").textContent = formatRupiah(Math.abs(pengeluaran));
+        document.getElementById("saldo").textContent = formatRupiah(pemasukan + pengeluaran);
+      }
+
+      async function createItem(nama, nominal, keterangan) {
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nama, nominal, keterangan }),
+        });
+        fetchItems();
+      }
+
+      async function deleteItem(id) {
+        await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        fetchItems();
+      }
+
+      document.getElementById("form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const nama = document.getElementById("nama").value;
+        const nominal = parseFloat(document.getElementById("nominal").value);
+        const keterangan = document.getElementById("keterangan").value;
+        createItem(nama, nominal, keterangan);
+        e.target.reset();
+      });
+
+      fetchItems();
+    </script>
+  </body>
 </html>

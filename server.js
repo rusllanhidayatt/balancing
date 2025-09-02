@@ -24,7 +24,8 @@ function writeData(data) {
 app.post("/items", (req, res) => {
   try {
     const items = readData();
-    const newItem = { id: Date.now(), ...req.body };
+    const { nama, nominal, keterangan } = req.body;
+    const newItem = { id: Date.now(), nama, nominal, keterangan };
     items.push(newItem);
     writeData(items);
     res.status(201).json(newItem);
