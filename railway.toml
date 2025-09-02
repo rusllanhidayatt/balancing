@@ -1,12 +1,28 @@
 # railway.toml
+
 [build]
 builder = "NIXPACKS"
 
 [phases.setup]
-nixPkgs = ["nodejs", "npm"]
+# Node + npm + dependency untuk "sharp" (libvips)
+nixPkgs = ["nodejs", "npm", "pkg-config", "libvips"]
 
 [phases.build]
-cmds = ["npm install", "npm run build"]
+# install deps + build (kalau ada)
+cmds = [
+  "npm install",
+  "npm run build"
+]
+
+[deploy]
+# Opsional: jalanin migrasi, setup, dsb sebelum start
+# preDeploy = "npm run migrate"
 
 [start]
+# Command untuk jalanin app kamu
 cmd = "npm run start"
+
+[env]
+# Tambahin env default (bisa di override di Railway Dashboard)
+PORT = "3000"
+NODE_ENV = "production"
