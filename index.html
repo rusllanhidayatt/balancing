@@ -109,8 +109,13 @@
       const API_URL = "https://balancing-wop-production.up.railway.app";
       const UPLOAD_ENDPOINT = API_URL + "/upload";
       const ITEMS_ENDPOINT = API_URL + "/items";
-
-      const loginScreen = document.getElementById('loginScreen');
+      
+      document.getElementById('loginScreen').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('btnLogin').click();
+        }
+      });
       const app = document.getElementById('app');
 
       // === LOGIN ===
