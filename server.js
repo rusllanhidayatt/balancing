@@ -75,15 +75,19 @@ app.post("/items", (req, res) => {
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
     const items = readData();
-    const { nama, nominal, keterangan } = req.body;
+    const { nama, nominal, keterangan, tanggal, photoUrl } = req.body;
+
     const newItem = {
       id: Date.now(),
       user: user.username,
       nama,
       nominal,
       keterangan,
+      tanggal: tanggal || new Date().toISOString().split("T")[0],
+      photoUrl: photoUrl || null,
       createdAt: new Date().toISOString(),
     };
+
     items.push(newItem);
     writeData(items);
     res.status(201).json(newItem);
