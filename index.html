@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Keuangan + Upload Struk</title>
+    <title>Finance Apps</title>
+    <link rel="icon" type="image/jpeg" href="favicon.jpg" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       .thumb { width:72px; height:72px; object-fit:cover; border-radius:6px; }
@@ -14,7 +15,7 @@
     <!-- LOGIN SCREEN -->
     <main id="loginScreen" class="min-h-screen flex items-center justify-center">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4 text-center">🔐 Masuk — Balancing</h2>
+        <h2 class="text-2xl font-bold mb-4 text-center">🔐 Masuk</h2>
         <input id="userInput" class="w-full p-3 mb-3 rounded border dark:bg-gray-700" placeholder="username" />
         <input id="passInput" type="password" class="w-full p-3 mb-4 rounded border dark:bg-gray-700" placeholder="password" />
         <button id="btnLogin" class="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700">Masuk</button>
@@ -65,7 +66,7 @@
         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow mb-6">
           <h3 class="font-semibold mb-3">Tambah Transaksi</h3>
           <form id="itemForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-            <input id="fieldNama" type="text" placeholder="Nama" class="p-2 border rounded md:col-span-2 dark:bg-gray-700" required />
+            <input id="fieldNama" type="hidden" />
             <input id="fieldNominal" type="number" placeholder="Nominal (positif/pemasukan, negatif/pengeluaran)" class="p-2 border rounded dark:bg-gray-700" required />
             <input id="fieldKeterangan" type="text" placeholder="Keterangan" class="p-2 border rounded dark:bg-gray-700" />
             <input id="fieldTanggal" type="date" class="p-2 border rounded dark:bg-gray-700" />
@@ -172,6 +173,11 @@
         loginScreen.classList.add('hidden');
         app.classList.remove('hidden');
         updateUserBadge();
+
+        // isi otomatis fieldNama pake username login
+        const u = localStorage.getItem('username');
+        document.getElementById('fieldNama').value = u;
+
         fetchAndRender();
       }
 
@@ -245,36 +251,69 @@
         if(!nama || !nominal){ alert('Nama & nominal wajib diisi'); return; }
 
         let photoUrl = null;
+        let publicId = null;
         try{
-          if(file){
+            if(file){
             statusEl.textContent = 'Uploading file...';
-            const fd = new FormData(); fd.append('file', file);
-            const up = await fetch(UPLOAD_ENDPOINT, { method:'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
+            const fd = new FormData(); 
+            fd.append('file', file);
+
+            const up = await fetch(UPLOAD_ENDPOINT, { 
+                method:'POST', 
+                headers: { 'x-username': localStorage.getItem('username') }, 
+                body: fd 
+            });
+
             const j = await up.json();
             if(!up.ok) throw new Error(j.error || 'Upload gagal');
-            photoUrl = j.link || j.direct || null;
+
+            photoUrl = j.link || null;
+            publicId = j.id || null;   // 🔑 ambil public_id juga
             statusEl.textContent = 'Upload selesai';
-          }
+            }
 
-          const createRes = await fetch(ITEMS_ENDPOINT, { 
+            const createRes = await fetch(ITEMS_ENDPOINT, { 
             method: 'POST', 
-            headers: { 'Content-Type':'application/json', 'x-username': localStorage.getItem('username') }, 
-            body: JSON.stringify({ nama, nominal, keterangan, tanggal, photoUrl }) 
-          });
-          if(!createRes.ok){ const t = await createRes.text(); throw new Error(t||'Gagal buat item'); }
+            headers: { 
+                'Content-Type':'application/json', 
+                'x-username': localStorage.getItem('username') 
+            }, 
+            body: JSON.stringify({ 
+                nama, 
+                nominal, 
+                keterangan, 
+                tanggal, 
+                photoUrl, 
+                publicId    // 🔑 kirim ke backend
+            })
+            });
 
-          document.getElementById('itemForm').reset();
-          statusEl.textContent = 'Transaksi tersimpan';
-          setTimeout(()=> statusEl.textContent='',2500);
-          fetchAndRender();
-        }catch(err){ console.error(err); alert('Gagal: '+ err.message); statusEl.textContent=''; }
-      });
+            if(!createRes.ok){ 
+            const t = await createRes.text(); 
+            throw new Error(t||'Gagal buat item'); 
+            }
 
-      async function deleteItem(id){ 
+            document.getElementById('itemForm').reset();
+            statusEl.textContent = 'Transaksi tersimpan';
+            setTimeout(()=> statusEl.textContent='',2500);
+            fetchAndRender();
+
+        }catch(err){ 
+            console.error(err); 
+            alert('Gagal: '+ err.message); 
+            statusEl.textContent=''; 
+        }
+        });
+
+        // --- Delete item ---
+        async function deleteItem(id){ 
         if(!confirm('Hapus transaksi?')) return; 
-        await fetch(ITEMS_ENDPOINT + '/' + id, { method:'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
+        await fetch(ITEMS_ENDPOINT + '/' + id, { 
+            method:'DELETE', 
+            headers: { 'x-username': localStorage.getItem('username') } 
+        });
         fetchAndRender(); 
-      }
+        }
 
       // --- Export ---
       document.getElementById('btnExportCSV').addEventListener('click', async ()=>{

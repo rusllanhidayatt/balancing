@@ -78,7 +78,7 @@ app.post("/items", (req, res) => {
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
     const items = readData();
-    const { nama, nominal, keterangan, tanggal, photoUrl } = req.body || {};
+    const { nama, nominal, keterangan, tanggal, photoUrl, publicId } = req.body || {};
 
     // simple validation & normalization
     const parsedNominal = Number(nominal);
@@ -94,6 +94,7 @@ app.post("/items", (req, res) => {
       keterangan: keterangan ? String(keterangan) : "",
       tanggal: tanggal ? String(tanggal) : new Date().toISOString().split("T")[0],
       photoUrl: photoUrl || null,
+      publicId: publicId || null,
       createdAt: new Date().toISOString(),
     };
 
@@ -149,7 +150,7 @@ app.put("/items/:id", (req, res) => {
 });
 
 // DELETE
-app.delete("/items/:id", (req, res) => {
+app.delete("/items/:id", async (req, res) => {
   try {
     const user = getUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
@@ -162,11 +163,19 @@ app.delete("/items/:id", (req, res) => {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    // Hapus dari Cloudinary kalau ada publicId
+    if (items[index].publicId) {
+      try {
+        await cloudinary.uploader.destroy(items[index].publicId);
+      } catch (err) {
+        console.error("Cloudinary delete error:", err);
+      }
+    }
+
     const newItems = items.filter((i) => i.id != req.params.id);
     writeData(newItems);
     res.json({ success: true });
   } catch (err) {
-    console.error("Delete item error:", err);
     res.status(500).json({ error: "Failed to delete item" });
   }
 });
