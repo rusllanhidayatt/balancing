@@ -1,106 +1,177 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Keuangan App</title>
+    <title>Dashboard Keuangan</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-gray-100 min-h-screen flex items-center justify-center">
     <div class="w-full max-w-5xl bg-white shadow-lg rounded-xl p-6">
-      <h1 class="text-3xl font-bold text-center mb-6 text-blue-600">
-        💰 Dashboard Keuangan
-      </h1>
 
-      <!-- Ringkasan -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
-        <div class="p-4 bg-green-100 rounded-lg shadow">
-          <h2 class="text-lg font-semibold text-green-700">Pemasukan</h2>
-          <p id="pemasukan" class="text-2xl font-bold text-green-600">Rp 0</p>
-        </div>
-        <div class="p-4 bg-red-100 rounded-lg shadow">
-          <h2 class="text-lg font-semibold text-red-700">Pengeluaran</h2>
-          <p id="pengeluaran" class="text-2xl font-bold text-red-600">Rp 0</p>
-        </div>
-        <div class="p-4 bg-blue-100 rounded-lg shadow">
-          <h2 class="text-lg font-semibold text-blue-700">Saldo</h2>
-          <p id="saldo" class="text-2xl font-bold text-blue-600">Rp 0</p>
-        </div>
+      <!-- Login Section -->
+      <div id="loginSection" class="text-center">
+        <h1 class="text-2xl font-bold mb-4 text-blue-600">🔐 Login</h1>
+        <input
+          type="password"
+          id="passwordInput"
+          placeholder="Masukkan kata kunci"
+          class="border px-4 py-2 rounded-lg w-64 mb-4"
+        />
+        <br />
+        <button
+          onclick="login()"
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
+        >
+          Login
+        </button>
       </div>
 
-      <!-- Form Input -->
-      <form
-        id="form"
-        class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end"
-      >
-        <div>
-          <label class="block text-sm font-medium">Nama</label>
-          <input
-            type="text"
-            id="nama"
-            required
-            class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          />
+      <!-- Dashboard Section -->
+      <div id="dashboard" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold text-blue-600">💰 Dashboard Keuangan</h1>
+          <button
+            onclick="logout()"
+            class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+          >
+            Logout
+          </button>
         </div>
-        <div>
-          <label class="block text-sm font-medium">Nominal</label>
-          <input
-            type="number"
-            id="nominal"
-            required
-            placeholder="contoh: 500000 (positif = pemasukan, negatif = pengeluaran)"
-            class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium">Keterangan</label>
-          <input
-            type="text"
-            id="keterangan"
-            class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <button
-          type="submit"
-          class="md:col-span-3 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
-        >
-          + Tambah Transaksi
-        </button>
-      </form>
 
-      <!-- Tabel -->
-      <div class="overflow-x-auto">
-        <table class="min-w-full border border-gray-200 rounded-lg">
-          <thead class="bg-blue-100">
-            <tr>
-              <th class="px-4 py-2 border">Nama</th>
-              <th class="px-4 py-2 border">Nominal</th>
-              <th class="px-4 py-2 border">Keterangan</th>
-              <th class="px-4 py-2 border">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="itemsTable" class="text-center"></tbody>
-        </table>
+        <!-- Ringkasan -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
+          <div class="p-4 bg-green-100 rounded-lg">
+            <p class="font-bold text-green-700">Pemasukan</p>
+            <p id="pemasukan" class="text-xl font-bold">Rp 0</p>
+          </div>
+          <div class="p-4 bg-red-100 rounded-lg">
+            <p class="font-bold text-red-700">Pengeluaran</p>
+            <p id="pengeluaran" class="text-xl font-bold">Rp 0</p>
+          </div>
+          <div class="p-4 bg-blue-100 rounded-lg">
+            <p class="font-bold text-blue-700">Saldo</p>
+            <p id="saldo" class="text-xl font-bold">Rp 0</p>
+          </div>
+        </div>
+
+        <!-- Form Input -->
+        <form id="form" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 items-end">
+          <div>
+            <label class="block text-sm font-medium">Nama</label>
+            <input type="text" id="nama" required
+              class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Nominal</label>
+            <input type="number" id="nominal" required
+              class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Keterangan</label>
+            <input type="text" id="keterangan"
+              class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Tanggal</label>
+            <input type="date" id="tanggal"
+              class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <button type="submit"
+            class="md:col-span-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">
+            + Tambah Transaksi
+          </button>
+        </form>
+
+        <!-- Filter -->
+        <div class="flex justify-end mb-4">
+          <select id="filterTanggal" onchange="fetchItems()"
+            class="border rounded-lg px-3 py-2 shadow focus:ring-blue-500 focus:border-blue-500">
+            <option value="all">📅 Semua</option>
+            <option value="today">📌 Hari Ini</option>
+            <option value="week">🗓️ Minggu Ini</option>
+            <option value="month">📆 Bulan Ini</option>
+          </select>
+        </div>
+
+        <!-- Tabel -->
+        <div class="overflow-x-auto">
+          <table class="min-w-full border border-gray-200 rounded-lg">
+            <thead class="bg-blue-100">
+              <tr>
+                <th class="px-4 py-2 border">Nama</th>
+                <th class="px-4 py-2 border">Nominal</th>
+                <th class="px-4 py-2 border">Keterangan</th>
+                <th class="px-4 py-2 border">Tanggal</th>
+                <th class="px-4 py-2 border">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="itemsTable" class="text-center"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <script>
-      const API_URL =
-        "https://balancing-wop-production.up.railway.app/items";
+      const API_URL = "https://balancing-wop-production.up.railway.app/items";
+      const PASSWORD = "12345"; // ganti sesuai kebutuhan
 
-      function formatRupiah(num) {
-        return "Rp " + num.toLocaleString("id-ID");
+      // LOGIN LOGIC
+      function login() {
+        const input = document.getElementById("passwordInput").value;
+        if (input === PASSWORD) {
+          localStorage.setItem("loggedIn", "true");
+          showDashboard();
+        } else {
+          alert("Password salah!");
+        }
       }
 
+      function logout() {
+        localStorage.removeItem("loggedIn");
+        location.reload();
+      }
+
+      function showDashboard() {
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        fetchItems();
+      }
+
+      if (localStorage.getItem("loggedIn") === "true") {
+        showDashboard();
+      }
+
+      // CRUD
       async function fetchItems() {
         const res = await fetch(API_URL);
-        const items = await res.json();
+        let items = await res.json();
         const tbody = document.getElementById("itemsTable");
         tbody.innerHTML = "";
 
-        let pemasukan = 0,
-          pengeluaran = 0;
+        const filter = document.getElementById("filterTanggal").value;
+        const today = new Date();
 
+        items = items.filter(item => {
+          const itemDate = new Date(item.tanggal);
+          if (filter === "today") {
+            return itemDate.toDateString() === today.toDateString();
+          }
+          if (filter === "week") {
+            const start = new Date(today);
+            start.setDate(today.getDate() - today.getDay());
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            return itemDate >= start && itemDate <= end;
+          }
+          if (filter === "month") {
+            return itemDate.getMonth() === today.getMonth() &&
+                   itemDate.getFullYear() === today.getFullYear();
+          }
+          return true;
+        });
+
+        let pemasukan = 0, pengeluaran = 0;
         items.forEach((item) => {
           const nominal = Number(item.nominal) || 0;
           if (nominal > 0) pemasukan += nominal;
@@ -113,8 +184,10 @@
                 ${formatRupiah(nominal)}
               </td>
               <td class="border px-4 py-2">${item.keterangan || "-"}</td>
+              <td class="border px-4 py-2">${item.tanggal || "-"}</td>
               <td class="border px-4 py-2">
-                <button onclick="deleteItem(${item.id})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Hapus</button>
+                <button onclick="deleteItem(${item.id})"
+                  class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Hapus</button>
               </td>
             </tr>`;
         });
@@ -124,11 +197,16 @@
         document.getElementById("saldo").textContent = formatRupiah(pemasukan + pengeluaran);
       }
 
-      async function createItem(nama, nominal, keterangan) {
+      async function createItem(nama, nominal, keterangan, tanggal) {
         await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nama, nominal, keterangan }),
+          body: JSON.stringify({
+            nama,
+            nominal,
+            keterangan,
+            tanggal: tanggal || new Date().toISOString().split("T")[0]
+          }),
         });
         fetchItems();
       }
@@ -143,11 +221,14 @@
         const nama = document.getElementById("nama").value;
         const nominal = parseFloat(document.getElementById("nominal").value);
         const keterangan = document.getElementById("keterangan").value;
-        createItem(nama, nominal, keterangan);
+        const tanggal = document.getElementById("tanggal").value;
+        createItem(nama, nominal, keterangan, tanggal);
         e.target.reset();
       });
 
-      fetchItems();
+      function formatRupiah(angka) {
+        return "Rp " + angka.toLocaleString("id-ID");
+      }
     </script>
   </body>
 </html>
