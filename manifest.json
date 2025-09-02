@@ -1,10 +1,17 @@
 {
   "name": "Finance Apps",
   "short_name": "Finance",
+  "description": "Aplikasi pencatatan keuangan sederhana, bisa tambah transaksi dengan bukti foto, laporan saldo, dan ekspor CSV/Excel.",
+  "id": "com.balancing.finance",  
   "start_url": ".",
+  "scope": ".",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "icons": [
     {
       "src": "favicon.png",
@@ -30,5 +37,22 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Dashboard transaksi"
+    },
+    {
+      "src": "screenshot2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Detail transaksi dengan bukti"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "lang": "id",
+  "dir": "ltr"
 }
