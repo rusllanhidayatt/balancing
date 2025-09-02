@@ -83,8 +83,8 @@ app.post("/items", (req, res) => {
       nama,
       nominal,
       keterangan,
-      tanggal: tanggal || new Date().toISOString().split("T")[0],
-      photoUrl: photoUrl || null,
+      tanggal: tanggal || new Date().toISOString().split("T")[0], // default hari ini
+      photoUrl: photoUrl || null, // default null kalau ga ada upload
       createdAt: new Date().toISOString(),
     };
 
@@ -92,6 +92,7 @@ app.post("/items", (req, res) => {
     writeData(items);
     res.status(201).json(newItem);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to create item" });
   }
 });
