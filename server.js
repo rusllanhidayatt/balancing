@@ -1,12 +1,12 @@
-// server.js
 const express = require("express");
 const fs = require("fs");
-const path = require("path");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const multer = require("multer");
+const sharp = require("sharp");
+const { google } = require("googleapis");
+const { Readable } = require("stream");
 const sqlite3 = require("sqlite3").verbose();
-const { stringify } = require("csv-stringify");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,12 +15,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static("public"));
-app.use("/uploads", express.static("uploads"));
 
-// === SQLite setup ===
-const dbFile = path.join(__dirname, "database.sqlite");
-const db = new sqlite3.Database(dbFile);
-
+// === SQLite init ===
+const db = new sqlite3.Database("./data.db");
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,65 +25,70 @@ db.serialize(() => {
     password TEXT,
     role TEXT
   )`);
-
   db.run(`CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     userId INTEGER,
     nominal REAL,
     keterangan TEXT,
     buktiUrl TEXT,
-    createdAt TEXT,
-    FOREIGN KEY(userId) REFERENCES users(id)
+    createdAt TEXT
   )`);
-
-  // Insert user default
-  const defaultUsers = [
-    { username: "admin", password: "1234", role: "admin" },
-    { username: "fenita", password: "1234", role: "user" },
-    { username: "ruslan", password: "1234", role: "user" },
-  ];
-  defaultUsers.forEach((u) => {
-    db.run(
-      "INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)",
-      [u.username, u.password, u.role]
-    );
-  });
 });
 
-// === Upload bukti ===
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = "uploads";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext);
-  },
+// === Seed Users (1x insert kalau kosong) ===
+db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
+  if (row.count === 0) {
+    db.run("INSERT INTO users (username,password,role) VALUES (?,?,?)", [
+      "admin",
+      "admin123",
+      "admin",
+    ]);
+    db.run("INSERT INTO users (username,password,role) VALUES (?,?,?)", [
+      "fenita",
+      "fenita123",
+      "user",
+    ]);
+    db.run("INSERT INTO users (username,password,role) VALUES (?,?,?)", [
+      "ruslan",
+      "ruslan123",
+      "user",
+    ]);
+    console.log("✅ Default users inserted");
+  }
 });
-const upload = multer({ storage });
 
-// === Auth ===
+// === Google Drive OAuth (opsional untuk bukti upload) ===
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
+oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+// === API ===
+
+// Login
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   db.get(
-    "SELECT id, username, role FROM users WHERE username=? AND password=?",
+    "SELECT id,username,role FROM users WHERE username=? AND password=?",
     [username, password],
     (err, row) => {
-      if (err) return res.status(500).json({ error: "DB error" });
-      if (!row) return res.status(401).json({ error: "Invalid credentials" });
-      res.json(row);
+      if (row) {
+        res.json({ success: true, user: row });
+      } else {
+        res.json({ success: false });
+      }
     }
   );
 });
 
-// === Items ===
-app.post("/items", upload.single("file"), (req, res) => {
-  const { userId, nominal, keterangan } = req.body;
-  const buktiUrl = req.file ? `/uploads/${req.file.filename}` : null;
+// Tambah item
+app.post("/items", (req, res) => {
+  const { userId, nominal, keterangan, buktiUrl } = req.body;
   const createdAt = new Date().toISOString();
-
   db.run(
     "INSERT INTO items (userId, nominal, keterangan, buktiUrl, createdAt) VALUES (?, ?, ?, ?, ?)",
     [userId, nominal, keterangan, buktiUrl, createdAt],
@@ -104,6 +106,7 @@ app.post("/items", upload.single("file"), (req, res) => {
   );
 });
 
+// Get items
 app.get("/items/:userId", (req, res) => {
   const { userId } = req.params;
   const { role } = req.query;
@@ -121,6 +124,7 @@ app.get("/items/:userId", (req, res) => {
   }
 });
 
+// Hapus item
 app.delete("/items/:id", (req, res) => {
   db.run("DELETE FROM items WHERE id=?", [req.params.id], function (err) {
     if (err) return res.status(500).json({ error: "Delete failed" });
@@ -128,68 +132,74 @@ app.delete("/items/:id", (req, res) => {
   });
 });
 
-// === Summary ===
+// Summary
 app.get("/summary/:userId", (req, res) => {
   const { userId } = req.params;
   const { role } = req.query;
 
-  let query = "SELECT nominal FROM items";
-  let params = [];
-  if (role !== "admin") {
-    query += " WHERE userId=?";
-    params = [userId];
-  }
+  let query =
+    role === "admin"
+      ? "SELECT * FROM items"
+      : "SELECT * FROM items WHERE userId=?";
+  let params = role === "admin" ? [] : [userId];
 
   db.all(query, params, (err, rows) => {
     if (err) return res.status(500).json({ error: "Summary failed" });
 
-    let pemasukan = 0;
-    let pengeluaran = 0;
+    let income = 0,
+      expense = 0;
+    rows.forEach((i) => {
+      if (i.nominal >= 0) income += i.nominal;
+      else expense += Math.abs(i.nominal);
+    });
+    res.json({ income, expense, balance: income - expense });
+  });
+});
 
-    rows.forEach((r) => {
-      if (r.nominal >= 0) pemasukan += r.nominal;
-      else pengeluaran += r.nominal;
+// Upload ke Google Drive
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file" });
+
+    const compressed = await sharp(req.file.buffer)
+      .resize({ width: 1024, withoutEnlargement: true })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+
+    const drive = google.drive({ version: "v3", auth: oauth2Client });
+    const fileMeta = {
+      name: req.file.originalname.replace(/\.[^/.]+$/, "") + ".jpg",
+      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
+    };
+    const media = { mimeType: "image/jpeg", body: Readable.from(compressed) };
+
+    const file = await drive.files.create({
+      resource: fileMeta,
+      media,
+      fields: "id",
+    });
+
+    await drive.permissions.create({
+      fileId: file.data.id,
+      requestBody: { role: "reader", type: "anyone" },
     });
 
     res.json({
-      pemasukan,
-      pengeluaran,
-      saldo: pemasukan + pengeluaran,
+      success: true,
+      link: `https://drive.google.com/uc?export=view&id=${file.data.id}`,
     });
-  });
-});
-
-// === Export CSV ===
-app.get("/export/:userId", (req, res) => {
-  const { userId } = req.params;
-  const { role } = req.query;
-
-  let query = "SELECT * FROM items";
-  let params = [];
-  if (role !== "admin") {
-    query += " WHERE userId=?";
-    params = [userId];
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Upload failed" });
   }
-
-  db.all(query, params, (err, rows) => {
-    if (err) return res.status(500).json({ error: "Export failed" });
-
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=transaksi.csv");
-
-    const stringifier = stringify({ header: true });
-    rows.forEach((row) => stringifier.write(row));
-    stringifier.end();
-    stringifier.pipe(res);
-  });
 });
 
-// === Root ===
+// Root
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
+  res.send("✅ API Running - buka /index.html");
 });
 
-// === Start ===
+// Start
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running http://localhost:${PORT}`);
 });
