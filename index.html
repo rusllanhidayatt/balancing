@@ -67,24 +67,61 @@
           </div>
         </div>
 
-        <!-- Tambah Transaksi -->
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-4xl mx-auto mt-8 mb-10">
-        <h2 class="text-lg font-semibold mb-6 text-white">Tambah Transaksi</h2>
+        <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg max-w-5xl mx-auto mt-6">
+        <h2 class="text-xl font-semibold mb-4">Tambah Transaksi</h2>
+        <form id="formTransaksi" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            
+            <!-- Nama -->
+            <input
+            id="fieldNama"
+            type="text"
+            placeholder="Nama transaksi"
+            class="w-full h-10 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
+            />
 
-        <!-- Grid input -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input type="number" placeholder="Nominal (positif/pemasukan)"
-            class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input type="text" placeholder="Keterangan"
-            class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input type="date"
-            class="w-full h-11 px-3 rounded bg-gray-700 text-white" />
-            <input type="file"
-            class="w-full h-11 text-sm text-gray-300
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-lg file:border-0
-                    file:bg-blue-600 file:text-white
-                    hover:file:bg-blue-700" />
+            <!-- Nominal -->
+            <input
+            id="fieldNominal"
+            type="text"
+            inputmode="numeric"
+            placeholder="Nominal (positif/pemasukan)"
+            class="w-full h-10 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
+            />
+
+            <!-- Keterangan -->
+            <input
+            id="fieldKeterangan"
+            type="text"
+            placeholder="Keterangan"
+            class="w-full h-10 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
+            />
+
+            <!-- Tanggal -->
+            <input
+            id="fieldTanggal"
+            type="date"
+            class="w-full h-10 px-3 rounded bg-gray-700 text-white"
+            />
+
+            <!-- Upload -->
+            <input
+            id="fieldFile"
+            type="file"
+            accept="image/*"
+            class="w-full h-10 text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full 
+                    file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white 
+                    hover:file:bg-blue-500"
+            />
+
+            <!-- Submit -->
+            <button
+            id="btnSubmit"
+            type="submit"
+            class="md:col-span-4 w-full bg-green-600 hover:bg-green-500 py-2 rounded text-white font-semibold"
+            >
+            Simpan Transaksi
+            </button>
+        </form>
         </div>
 
         <!-- Tombol -->
