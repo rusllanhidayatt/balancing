@@ -15,7 +15,7 @@
     <main id="loginScreen" class="min-h-screen flex items-center justify-center">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 w-full max-w-md">
         <h2 class="text-2xl font-bold mb-4 text-center">🔐 Masuk — Balancing</h2>
-        <input id="userInput" class="w-full p-3 mb-3 rounded border dark:bg-gray-700" placeholder="username (default: admin)" />
+        <input id="userInput" class="w-full p-3 mb-3 rounded border dark:bg-gray-700" placeholder="username (contoh: admin/andi/budi)" />
         <input id="passInput" type="password" class="w-full p-3 mb-4 rounded border dark:bg-gray-700" placeholder="password (default: 1234)" />
         <button id="btnLogin" class="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700">Masuk</button>
         <p class="text-sm text-center text-gray-500 mt-3">Akun tersimpan di device sampai kamu logout</p>
@@ -35,7 +35,8 @@
             <option value="month">Bulan ini</option>
           </select>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
+          <span id="currentUser" class="text-xs md:text-sm px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">👤 -</span>
           <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
           <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
           <button id="btnToggleTheme" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">🌙</button>
@@ -100,38 +101,50 @@
     </div>
 
     <script>
+      // Ganti sesuai deployment backend
       const API_URL = "http://localhost:3000";
       const UPLOAD_ENDPOINT = API_URL + "/upload";
       const ITEMS_ENDPOINT = API_URL + "/items";
 
-      const defaultUser = { username: 'admin', password: '1234' };
+      // --- Login (validasi ke backend) ---
       const loginScreen = document.getElementById('loginScreen');
       const app = document.getElementById('app');
 
-      document.getElementById('btnLogin').addEventListener('click', () => {
-        const u = document.getElementById('userInput').value || 'admin';
-        const p = document.getElementById('passInput').value || '1234';
-        if (u === defaultUser.username && p === defaultUser.password) {
+      document.getElementById('btnLogin').addEventListener('click', async () => {
+        const u = (document.getElementById('userInput').value || '').trim();
+        const p = document.getElementById('passInput').value || '';
+        if (!u) return alert('Masukkan username');
+        if (p !== '1234') return alert('Password salah (default 1234)');
+        try {
+          const res = await fetch(API_URL + '/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Login gagal');
+
           localStorage.setItem('loggedIn', 'true');
-          localStorage.setItem('username', u);
+          localStorage.setItem('username', data.user.username);
+          localStorage.setItem('role', data.user.role);
           showApp();
-        } else if (u !== 'admin' && p === '1234') {
-          localStorage.setItem('loggedIn', 'true');
-          localStorage.setItem('username', u);
-          showApp();
-        } else {
-          alert('Username / password salah');
+        } catch (e) {
+          alert(e.message);
         }
       });
 
-      document.getElementById('btnLogout').addEventListener('click', () => { 
-        localStorage.removeItem('loggedIn'); 
-        localStorage.removeItem('username'); 
-        location.reload(); 
-      });
+      document.getElementById('btnLogout').addEventListener('click', doLogout);
+
+      function doLogout(){
+        localStorage.removeItem('loggedIn');
+        localStorage.removeItem('username');
+        localStorage.removeItem('role');
+        location.reload();
+      }
 
       if (localStorage.getItem('loggedIn')) showApp();
 
+      // --- Theme ---
       const themeBtn = document.getElementById('btnToggleTheme');
       function applyTheme(theme) {
         if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -141,21 +154,34 @@
       const userPref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       const savedTheme = localStorage.getItem('theme') || userPref;
       applyTheme(savedTheme);
-
       themeBtn.addEventListener('click', () => {
         const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         applyTheme(cur === 'dark' ? 'light' : 'dark');
       });
 
+      // --- Helpers ---
       function fmtRp(num){ return 'Rp ' + Number(num).toLocaleString('id-ID'); }
-      function showApp(){ loginScreen.classList.add('hidden'); app.classList.remove('hidden'); fetchAndRender(); }
       function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+      function updateUserBadge(){
+        const u = localStorage.getItem('username') || '-';
+        const r = localStorage.getItem('role') || (u==='admin'?'admin':'user');
+        const el = document.getElementById('currentUser');
+        if (el) el.textContent = `👤 ${u} (${r})`;
+      }
+      function showApp(){
+        loginScreen.classList.add('hidden');
+        app.classList.remove('hidden');
+        updateUserBadge();
+        fetchAndRender();
+      }
 
+      // --- Fetch items and render ---
       async function fetchAndRender(){
         try{
           const res = await fetch(ITEMS_ENDPOINT, {
-            headers: { "x-username": localStorage.getItem("username") }
+            headers: { 'x-username': localStorage.getItem('username') }
           });
+          if (res.status === 401){ alert('Sesi tidak valid / user tidak terdaftar'); return doLogout(); }
           const items = await res.json();
           render(items);
         }catch(err){ console.error(err); alert('Gagal memuat data'); }
@@ -168,6 +194,7 @@
         document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
         document.getElementById('totalBalance').textContent = fmtRp(income+expense);
 
+        // table desktop
         const tbody = document.getElementById('tableBody'); tbody.innerHTML='';
         items.forEach(it => {
           tbody.innerHTML += `
@@ -182,6 +209,7 @@
           `;
         });
 
+        // cards mobile
         const card = document.getElementById('cardList'); card.innerHTML='';
         items.forEach(it => {
           card.innerHTML += `
@@ -205,6 +233,7 @@
         });
       }
 
+      // --- Create item + upload ---
       document.getElementById('itemForm').addEventListener('submit', async (e)=>{
         e.preventDefault();
         const nama = document.getElementById('fieldNama').value.trim();
@@ -220,7 +249,7 @@
           if(file){
             statusEl.textContent = 'Uploading file...';
             const fd = new FormData(); fd.append('file', file);
-            const up = await fetch(UPLOAD_ENDPOINT, { method:'POST', body: fd });
+            const up = await fetch(UPLOAD_ENDPOINT, { method:'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
             const j = await up.json();
             if(!up.ok) throw new Error(j.error || 'Upload gagal');
             photoUrl = j.link || j.direct || null;
@@ -247,8 +276,10 @@
         fetchAndRender(); 
       }
 
+      // --- Export ---
       document.getElementById('btnExportCSV').addEventListener('click', async ()=>{
         const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } }); 
+        if (res.status === 401){ alert('Sesi tidak valid / user tidak terdaftar'); return doLogout(); }
         const data = await res.json(); if(!data.length){ alert('Data kosong'); return; }
         const headers = ['Nama','Nominal','Keterangan','Tanggal','PhotoUrl'];
         const rows = data.map(i => [i.nama,i.nominal,i.keterangan,i.tanggal,i.photoUrl||'']);
@@ -258,6 +289,7 @@
 
       document.getElementById('btnExportExcel').addEventListener('click', async ()=>{
         const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } }); 
+        if (res.status === 401){ alert('Sesi tidak valid / user tidak terdaftar'); return doLogout(); }
         const data = await res.json(); if(!data.length){ alert('Data kosong'); return; }
         if(typeof XLSX === 'undefined'){ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); }
         const ws = XLSX.utils.json_to_sheet(data);
@@ -266,6 +298,7 @@
 
       function loadScript(src){ return new Promise((resolve,reject)=>{ const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
 
+      // --- Events ---
       document.getElementById('filterRange').addEventListener('change', fetchAndRender);
       document.getElementById('passInput').addEventListener('keypress', (e)=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
     </script>

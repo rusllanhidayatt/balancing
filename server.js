@@ -12,8 +12,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = "./data.json";
 
+// === Middleware ===
 app.use(cors());
 app.use(bodyParser.json());
+
+// === Users fix ===
+const USERS = [
+  { username: "admin", role: "admin" },
+  { username: "fenita", role: "user" },
+  { username: "ruslan", role: "user" },
+];
 
 // === Google Drive OAuth ===
 const oauth2Client = new google.auth.OAuth2(
@@ -23,14 +31,19 @@ const oauth2Client = new google.auth.OAuth2(
 );
 oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
 
+// === File Upload Middleware ===
 const upload = multer({ storage: multer.memoryStorage() });
 
-// === Helper JSON ===
+// === Helper functions for local data.json ===
 function readData() {
   try {
-    if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, "[]");
-    return JSON.parse(fs.readFileSync(DATA_FILE, "utf8") || "[]");
-  } catch {
+    if (!fs.existsSync(DATA_FILE)) {
+      fs.writeFileSync(DATA_FILE, "[]");
+    }
+    const raw = fs.readFileSync(DATA_FILE, "utf8");
+    return JSON.parse(raw || "[]");
+  } catch (err) {
+    console.error("readData error:", err);
     return [];
   }
 }
@@ -39,29 +52,38 @@ function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// === Middleware cek user dari header ===
+// === Login API ===
+app.post("/login", (req, res) => {
+  const { username } = req.body;
+  const user = USERS.find((u) => u.username === username);
+  if (!user) return res.status(401).json({ error: "User tidak terdaftar" });
+  res.json({ success: true, user });
+});
+
+// === Middleware cek user ===
 function getUser(req) {
-  return req.headers["x-username"] || "guest";
+  const username = req.header("x-username");
+  return USERS.find((u) => u.username === username);
 }
 
 // === CRUD APIs ===
+
+// CREATE
 app.post("/items", (req, res) => {
   try {
-    const items = readData();
     const user = getUser(req);
-    const { nama, nominal, keterangan, tanggal, photoUrl } = req.body;
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
 
+    const items = readData();
+    const { nama, nominal, keterangan } = req.body;
     const newItem = {
       id: Date.now(),
-      user,
+      user: user.username,
       nama,
       nominal,
       keterangan,
-      tanggal: tanggal || new Date().toISOString().split("T")[0],
-      photoUrl: photoUrl || null,
       createdAt: new Date().toISOString(),
     };
-
     items.push(newItem);
     writeData(items);
     res.status(201).json(newItem);
@@ -70,39 +92,36 @@ app.post("/items", (req, res) => {
   }
 });
 
+// READ ALL
 app.get("/items", (req, res) => {
   try {
-    const items = readData();
     const user = getUser(req);
-    if (user === "admin") return res.json(items);
-    res.json(items.filter((i) => i.user === user));
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    const items = readData();
+    if (user.role === "admin") {
+      return res.json(items);
+    }
+    const ownItems = items.filter((i) => i.user === user.username);
+    res.json(ownItems);
   } catch (err) {
     res.status(500).json({ error: "Failed to read items" });
   }
 });
 
-app.get("/items/:id", (req, res) => {
-  try {
-    const items = readData();
-    const user = getUser(req);
-    const item = items.find((i) => i.id == req.params.id);
-    if (!item) return res.status(404).json({ error: "Not found" });
-    if (user !== "admin" && item.user !== user)
-      return res.status(403).json({ error: "Forbidden" });
-    res.json(item);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to read item" });
-  }
-});
-
+// UPDATE
 app.put("/items/:id", (req, res) => {
   try {
-    let items = readData();
     const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    let items = readData();
     const index = items.findIndex((i) => i.id == req.params.id);
     if (index === -1) return res.status(404).json({ error: "Not found" });
-    if (user !== "admin" && items[index].user !== user)
+
+    if (user.role !== "admin" && items[index].user !== user.username) {
       return res.status(403).json({ error: "Forbidden" });
+    }
 
     items[index] = { ...items[index], ...req.body };
     writeData(items);
@@ -112,26 +131,34 @@ app.put("/items/:id", (req, res) => {
   }
 });
 
+// DELETE
 app.delete("/items/:id", (req, res) => {
   try {
-    let items = readData();
     const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    let items = readData();
     const index = items.findIndex((i) => i.id == req.params.id);
     if (index === -1) return res.status(404).json({ error: "Not found" });
-    if (user !== "admin" && items[index].user !== user)
-      return res.status(403).json({ error: "Forbidden" });
 
-    items.splice(index, 1);
-    writeData(items);
+    if (user.role !== "admin" && items[index].user !== user.username) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const newItems = items.filter((i) => i.id != req.params.id);
+    writeData(newItems);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete item" });
   }
 });
 
-// === Upload ke Google Drive ===
+// === Upload bukti pembayaran ke Google Drive ===
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
+    const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
     const compressedBuffer = await sharp(req.file.buffer)
@@ -146,11 +173,14 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
     };
 
-    const media = { mimeType: "image/jpeg", body: Readable.from(compressedBuffer) };
+    const media = {
+      mimeType: "image/jpeg",
+      body: Readable.from(compressedBuffer),
+    };
 
     const file = await drive.files.create({
       resource: fileMetadata,
-      media,
+      media: media,
       fields: "id, webViewLink",
     });
 
@@ -170,11 +200,12 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-// === Root ===
+// === Root endpoint ===
 app.get("/", (req, res) => {
-  res.send("API running! Use /items or /upload");
+  res.send("API running! Use /login, /items or /upload");
 });
 
+// === Start server ===
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
