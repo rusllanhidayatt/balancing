@@ -43,10 +43,9 @@
 
         <!-- kanan -->
         <div class="flex flex-wrap items-center gap-2">
-            <span id="currentUser" class="text-xs md:text-sm px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">👤 -</span>
             <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
             <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
-            <button id="btnToggleTheme" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">🌙</button>
+            <button id="btnToggleTheme" class="hidden px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">🌙</button>
             <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
         </div>
       </nav>
@@ -76,10 +75,10 @@
             <input id="fieldNominal" type="text" placeholder="Nominal (positif/pemasukan, negatif/pengeluaran)" class="p-2 border rounded dark:bg-gray-700" required />
             <input id="fieldKeterangan" type="text" placeholder="Keterangan" class="p-2 border rounded dark:bg-gray-700" />
             <input id="fieldTanggal" type="date" class="p-2 border rounded dark:bg-gray-700" />
-
-            <div class="flex items-center gap-2 md:col-span-5">
-              <input id="fileInput" type="file" accept="image/*" class="p-1" />
-              <button id="submitBtn" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded">Tambah & Upload</button>
+            
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:col-span-5">
+            <input id="fileInput" type="file" accept="image/*" class="p-1 w-full sm:w-auto" />
+            <button id="submitBtn" class="bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto">Tambah & Upload</button>
             </div>
           </form>
           <p id="uploadStatus" class="mt-2 text-sm text-gray-500"></p>
