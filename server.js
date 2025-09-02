@@ -201,34 +201,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     res.status(500).json({ error: "Upload failed" });
   }
 });
-const path = require("path");
-const multer = require("multer");
-
-// === Local Upload Storage ===
-const uploadLocal = multer({ dest: "uploads/" });
-
-// Serve folder uploads biar bisa diakses publik
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// === API Upload Local ===
-app.post("/upload-local", uploadLocal.single("file"), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    const publicUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-
-    res.json({
-      success: true,
-      filename: req.file.originalname,
-      url: publicUrl,
-    });
-  } catch (err) {
-    console.error("Upload error:", err);
-    res.status(500).json({ error: "Upload failed" });
-  }
-});
 
 // === Root endpoint ===
 app.get("/", (req, res) => {
