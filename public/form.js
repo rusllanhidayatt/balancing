@@ -1,65 +1,56 @@
-import { fetchAndRender } from './data.js';
-
-const API_URL = "https://balancing-wop-production.up.railway.app";
+const API_URL = location.hostname === "localhost" ? "http://localhost:3000" : "https://balancing-wop-production.up.railway.app";
 const UPLOAD_ENDPOINT = API_URL + "/upload";
 const ITEMS_ENDPOINT = API_URL + "/items";
 
 export function initForm() {
   const nominalInput = document.getElementById('fieldNominal');
+  const form = document.getElementById('itemForm');
+  const statusEl = document.getElementById('formStatus');
 
-  // format nominal
   nominalInput.addEventListener('input', (e) => {
-    let raw = e.target.value.replace(/\D/g, '');
-    if (!raw) {
-      e.target.value = '';
-      return;
-    }
-    e.target.value = Number(raw).toLocaleString('id-ID');
+    let raw = e.target.value.replace(/[^\d]/g, '');
+    e.target.value = raw ? Number(raw).toLocaleString('id-ID') : '';
   });
 
-  // submit form
-  document.getElementById('itemForm').addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const nominalRaw = nominalInput.value.replace(/\./g, '').replace(/,/g, '');
-    const nominal = Number(nominalRaw);
-    const keterangan = document.getElementById('fieldKeterangan').value.trim();
-    const tanggal = document.getElementById('fieldTanggal').value || new Date().toISOString().split('T')[0];
-    const file = document.getElementById('fileInput').files[0];
-    const statusEl = document.getElementById('uploadStatus');
-    statusEl.textContent = '';
-    if (!nominal) return alert('Nominal wajib diisi');
+    statusEl.textContent = 'Menyimpan...';
 
-    let photoUrl = null, publicId = null;
     try {
+      const nama = localStorage.getItem('username');
+      const nominal = Number((document.getElementById('fieldNominal').value || '').replace(/\./g,'').replace(/,/g,'').replace(/\s/g,'').replace(/[^\d]/g,''));
+      const keterangan = document.getElementById('fieldKeterangan').value.trim();
+      const tanggal = document.getElementById('fieldTanggal').value;
+      const file = document.getElementById('fieldBukti').files[0];
+
+      let photoUrl = null, publicId = null;
+
       if (file) {
-        statusEl.textContent = 'Uploading...';
         const fd = new FormData();
         fd.append('file', file);
-        const up = await fetch(UPLOAD_ENDPOINT, {
+        const resUp = await fetch(UPLOAD_ENDPOINT, {
           method: 'POST',
-          headers: { 'x-username': localStorage.getItem('username') },
+          headers: { 'x-username': nama },
           body: fd
         });
-        const j = await up.json();
-        if (!up.ok) throw new Error(j.error || 'Upload gagal');
-        photoUrl = j.link || null;
-        publicId = j.id || null;
-        statusEl.textContent = 'Upload selesai';
+        if (!resUp.ok) throw new Error('Upload gagal');
+        const up = await resUp.json();
+        photoUrl = up.photoUrl; publicId = up.publicId;
       }
+
       const createRes = await fetch(ITEMS_ENDPOINT, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-username': localStorage.getItem('username')
-        },
-        body: JSON.stringify({ nama: localStorage.getItem('username'), nominal, keterangan, tanggal, photoUrl, publicId })
+        headers: { 'Content-Type': 'application/json', 'x-username': nama },
+        body: JSON.stringify({ nama, nominal, keterangan, tanggal, photoUrl, publicId })
       });
       if (!createRes.ok) throw new Error(await createRes.text());
-      document.getElementById('itemForm').reset();
+
+      form.reset();
       nominalInput.value = '';
       statusEl.textContent = 'Transaksi tersimpan';
-      setTimeout(() => statusEl.textContent = '', 2000);
-      fetchAndRender();
+      setTimeout(() => statusEl.textContent = '', 1500);
+      // dispatch event to refresh list if needed
+      if (window.fetchAndRender) window.fetchAndRender();
     } catch (err) {
       alert('Gagal: ' + err.message);
       statusEl.textContent = '';

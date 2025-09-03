@@ -1,24 +1,28 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const path = require("path");
 
 const authRoute = require("./routes/authRoute");
 const itemsRoute = require("./routes/itemsRoute");
+const uploadRoute = require("./routes/uploadRoute");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Global middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: "2mb" }));
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Routes
-app.use("/login", authRoute); // POST /login
-app.use("/items", itemsRoute); // CRUD items
+// Serve public for quick testing
+app.use(express.static(path.join(__dirname, "public")));
 
-// Health / root
+app.use("/login", authRoute);
+app.use("/items", itemsRoute);
+app.use("/upload", uploadRoute);
+
 app.get("/", (_req, res) => {
-res.send("API running! Use /login, /items, /import");
+  res.send("API running! Endpoints: POST /login, GET/POST/PUT/DELETE /items, POST /upload");
 });
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

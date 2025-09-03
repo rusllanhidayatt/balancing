@@ -1,108 +1,95 @@
-const express3 = require("express");
+const express = require("express");
+const path = require("path");
 const { getUser } = require("../utils/auth");
 const { readData, writeData } = require("../utils/fileHelper");
 const { cloudinary } = require("../utils/cloudinary");
-const path2 = require("path");
 
-const router3 = express3.Router();
-const DATA_FILE2 = path2.join(__dirname, "..", "data.json");
+const router = express.Router();
+const DATA_FILE = path.join(__dirname, "..", "data.json");
 
-// CREATE
-router3.post("/", (req, res) => {
+// GET list (semua)
+router.get("/", (req, res) => {
   try {
     const user = getUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
-
-    const items = readData(DATA_FILE2);
-    const { nama, nominal, keterangan, tanggal, photoUrl, publicId } = req.body || {};
-
-    const parsedNominal = Number(nominal);
-    if (!nama || Number.isNaN(parsedNominal)) {
-      return res.status(400).json({ error: "Nama & nominal wajib diisi (nominal harus angka)" });
-    }
-
-    const newItem = {
-      id: Date.now(),
-      user: user.username,
-      nama: String(nama),
-      nominal: parsedNominal,
-      keterangan: keterangan ? String(keterangan) : "",
-      tanggal: tanggal ? String(tanggal) : new Date().toISOString().split("T")[0],
-      photoUrl: photoUrl || null,
-      publicId: publicId || null,
-      createdAt: new Date().toISOString(),
-    };
-
-    items.push(newItem);
-    writeData(items, DATA_FILE2);
-    res.status(201).json(newItem);
+    const items = readData(DATA_FILE);
+    res.json(items);
   } catch (err) {
-    console.error("Create item error:", err);
-    res.status(500).json({ error: "Failed to create item" });
-  }
-});
-
-// READ ALL
-router3.get("/", (req, res) => {
-  try {
-    const user = getUser(req);
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
-
-    const items = readData(DATA_FILE2);
-    if (user.role === "admin") return res.json(items);
-    const ownItems = items.filter((i) => i.user === user.username);
-    res.json(ownItems);
-  } catch (err) {
-    console.error("Read items error:", err);
     res.status(500).json({ error: "Failed to read items" });
   }
 });
 
-// UPDATE
-router3.put("/:id", (req, res) => {
+// CREATE
+router.post("/", (req, res) => {
   try {
     const user = getUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const items = readData(DATA_FILE2);
-    const index = items.findIndex((i) => i.id == req.params.id);
-    if (index === -1) return res.status(404).json({ error: "Not found" });
-    if (user.role !== "admin" && items[index].user !== user.username) {
-      return res.status(403).json({ error: "Forbidden" });
+    const items = readData(DATA_FILE);
+    const { nama, nominal, keterangan, tanggal, photoUrl = null, publicId = null } = req.body || {};
+
+    if (!nama || !nominal || !keterangan || !tanggal) {
+      return res.status(400).json({ error: "Field wajib: nama, nominal, keterangan, tanggal" });
     }
 
-    items[index] = { ...items[index], ...req.body };
-    writeData(items, DATA_FILE2);
-    res.json(items[index]);
+    const id = String(Date.now());
+    const item = { id, nama, nominal: Number(nominal), keterangan, tanggal, photoUrl, publicId, createdAt: new Date().toISOString() };
+    items.push(item);
+    writeData(items, DATA_FILE);
+
+    res.json({ success: true, item });
   } catch (err) {
-    console.error("Update item error:", err);
+    console.error(err);
+    res.status(500).json({ error: "Failed to create item" });
+  }
+});
+
+// UPDATE
+router.put("/:id", (req, res) => {
+  try {
+    const user = getUser(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+    const items = readData(DATA_FILE);
+    const idx = items.findIndex((i) => i.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: "Item not found" });
+
+    const { nominal, keterangan, tanggal, photoUrl, publicId } = req.body || {};
+    if (nominal !== undefined) items[idx].nominal = Number(nominal);
+    if (keterangan !== undefined) items[idx].keterangan = keterangan;
+    if (tanggal !== undefined) items[idx].tanggal = tanggal;
+    if (photoUrl !== undefined) items[idx].photoUrl = photoUrl;
+    if (publicId !== undefined) items[idx].publicId = publicId;
+
+    writeData(items, DATA_FILE);
+    res.json({ success: true, item: items[idx] });
+  } catch (err) {
     res.status(500).json({ error: "Failed to update item" });
   }
 });
 
 // DELETE
-router3.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const user = getUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const items = readData(DATA_FILE2);
-    const index = items.findIndex((i) => i.id == req.params.id);
-    if (index === -1) return res.status(404).json({ error: "Not found" });
-    if (user.role !== "admin" && items[index].user !== user.username) {
-      return res.status(403).json({ error: "Forbidden" });
+    const items = readData(DATA_FILE);
+    const idx = items.findIndex((i) => i.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: "Item not found" });
+
+    const toDel = items[idx];
+    if (toDel.publicId) {
+      try { await cloudinary.uploader.destroy(toDel.publicId); } catch (e) { /* ignore */ }
     }
 
-    if (items[index].publicId) {
-      try { await cloudinary.uploader.destroy(items[index].publicId); } catch (e) { /* ignore */ }
-    }
+    const next = items.filter((i) => i.id !== req.params.id);
+    writeData(next, DATA_FILE);
 
-    const next = items.filter((i) => i.id != req.params.id);
-    writeData(next, DATA_FILE2);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete item" });
   }
 });
 
-module.exports = router3;
+module.exports = router;

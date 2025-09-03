@@ -1,25 +1,16 @@
-const fs2 = require("fs");
-
+const fs = require('fs');
 
 function readData(filePath) {
-try {
-if (!fs2.existsSync(filePath)) fs2.writeFileSync(filePath, "[]");
-const raw = fs2.readFileSync(filePath, "utf8");
-return JSON.parse(raw || "[]");
-} catch (err) {
-console.error("readData error:", err);
-return [];
+  try {
+    const raw = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(raw || '[]');
+  } catch (e) {
+    return [];
+  }
 }
-}
-
 
 function writeData(data, filePath) {
-try {
-fs2.writeFileSync(filePath, JSON.stringify(data, null, 2));
-} catch (err) {
-console.error("writeData error:", err);
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
-}
-
 
 module.exports = { readData, writeData };

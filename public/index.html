@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Keuangan + Upload Struk (Fixed)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen p-6">
+    <div id="loginScreen" class="max-w-md mx-auto bg-white p-6 rounded shadow">
+      <h2 class="text-xl font-bold mb-4">Login</h2>
+      <input id="userInput" placeholder="username" class="w-full mb-2 p-2 border rounded" />
+      <input id="passInput" placeholder="password" type="password" class="w-full mb-4 p-2 border rounded" />
+      <button id="btnLogin" class="w-full bg-blue-600 text-white p-2 rounded">Login</button>
+    </div>
+
+    <div id="app" class="hidden max-w-4xl mx-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Aplikasi Keuangan</h1>
+        <div>
+          <button id="btnExportCSV" class="px-3 py-1 border rounded mr-2">Export CSV</button>
+          <button id="btnExportExcel" class="px-3 py-1 border rounded">Export Excel</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <form id="itemForm" class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold mb-2">Tambah Transaksi</h3>
+          <input id="fieldTanggal" type="date" class="w-full mb-2 p-2 border rounded" required />
+          <input id="fieldNominal" placeholder="Nominal" class="w-full mb-2 p-2 border rounded" required />
+          <input id="fieldKeterangan" placeholder="Keterangan" class="w-full mb-2 p-2 border rounded" required />
+          <input id="fieldBukti" type="file" class="w-full mb-2" accept="image/*" />
+          <div id="formStatus" class="text-sm text-green-600 mb-2"></div>
+          <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Simpan</button>
+        </form>
+
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-semibold mb-2">Filter</h3>
+          <select id="filterRange" class="w-full p-2 border rounded mb-4">
+            <option value="all">Semua</option>
+            <option value="today">Hari ini</option>
+            <option value="week">Minggu ini</option>
+            <option value="month">Bulan ini</option>
+          </select>
+
+          <table class="w-full">
+            <thead><tr><th>Nama</th><th>Nominal</th><th>Keterangan</th><th>Tanggal</th><th>Bukti</th><th>Aksi</th></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+
+          <div id="pagination" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
