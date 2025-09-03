@@ -34,13 +34,11 @@ function applyThemeByTime() {
 // ==============================
 const API_URL = "https://balancing-wop-production.up.railway.app/items";
 
-// standar nama kolom yang kita butuhkan
 const FIELD_MAP = {
   nominal: ["nominal", "Nominal", "jumlah", "Jumlah"],
   keterangan: ["keterangan", "Keterangan", "deskripsi", "Deskripsi"],
   tanggal: ["tanggal", "Tanggal", "date", "Date"],
   photoUrl: ["photoUrl", "PhotoUrl", "foto", "Foto"],
-  publicId: ["publicId", "PublicId"],
   username: ["username", "Username", "nama", "Nama"] // 🔥 ambil dari file
 };
 
@@ -59,8 +57,7 @@ function normalizeRecord(record) {
     keterangan: String(findValue(FIELD_MAP.keterangan, "")),
     tanggal: String(findValue(FIELD_MAP.tanggal, new Date().toISOString().split("T")[0])).slice(0, 10),
     photoUrl: findValue(FIELD_MAP.photoUrl, null),
-    publicId: findValue(FIELD_MAP.publicId, null),
-    username: String(findValue(FIELD_MAP.username, "guest")) // 🔥 fallback guest
+    username: String(findValue(FIELD_MAP.username, "guest")) // fallback guest
   };
 }
 
@@ -86,30 +83,9 @@ async function parseFile(file) {
   }
 }
 
-async function upsertRecord(normalized) {
+async function insertRecord(normalized) {
   try {
-    // coba update jika ada publicId (anggap publicId = id item)
-    if (normalized.publicId) {
-      const res = await fetch(`${API_URL}/${normalized.publicId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-username": normalized.username
-        },
-        body: JSON.stringify({
-          nama: normalized.username,
-          nominal: normalized.nominal,
-          keterangan: normalized.keterangan,
-          tanggal: normalized.tanggal,
-          photoUrl: normalized.photoUrl
-        })
-      });
-
-      if (res.ok) return "updated";
-    }
-
-    // fallback insert baru
-    const resInsert = await fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -120,14 +96,16 @@ async function upsertRecord(normalized) {
         nominal: normalized.nominal,
         keterangan: normalized.keterangan,
         tanggal: normalized.tanggal,
-        photoUrl: normalized.photoUrl,
-        publicId: normalized.publicId || null
+        photoUrl: normalized.photoUrl // ⚡ tetap dikirim biar reuse gambar lama
       })
     });
-    if (resInsert.ok) return "inserted";
+
+    if (res.ok) return "inserted";
+    const errText = await res.text();
+    console.error("Insert gagal:", errText);
     return "failed";
   } catch (err) {
-    console.error("Upsert error:", err);
+    console.error("Insert error:", err);
     return "failed";
   }
 }
@@ -140,18 +118,16 @@ document.getElementById("btnImport").addEventListener("click", async () => {
   try {
     const rawRecords = await parseFile(file);
     let inserted = 0;
-    let updated = 0;
     let failed = 0;
 
     for (const r of rawRecords) {
       const normalized = normalizeRecord(r);
-      const result = await upsertRecord(normalized);
+      const result = await insertRecord(normalized);
       if (result === "inserted") inserted++;
-      else if (result === "updated") updated++;
       else failed++;
     }
 
-    status.textContent = `✅ Import selesai. Insert: ${inserted}, Update: ${updated}, Gagal: ${failed}`;
+    status.textContent = `✅ Import selesai. Insert: ${inserted}, Gagal: ${failed}`;
   } catch (err) {
     console.error(err);
     status.textContent = "❌ Import gagal: " + err.message;
