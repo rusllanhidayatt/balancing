@@ -214,27 +214,45 @@
 
     // === FETCH DATA ===
     async function fetchAndRender() {
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
+        const params = new URLSearchParams();
+
+        // Search
+        const keyword = document.getElementById('searchInput').value.trim();
+        if (keyword) params.append('search', keyword);
+
+        // Sort
+        const sortVal = document.getElementById('sortSelect').value;
+        if (sortVal === 'date_desc') { params.append('sort', 'tanggal'); params.append('order', 'desc'); }
+        if (sortVal === 'date_asc')  { params.append('sort', 'tanggal'); params.append('order', 'asc'); }
+        if (sortVal === 'nominal_desc') { params.append('sort', 'nominal'); params.append('order', 'desc'); }
+        if (sortVal === 'nominal_asc')  { params.append('sort', 'nominal'); params.append('order', 'asc'); }
+
+        const res = await fetch(ITEMS_ENDPOINT + '?' + params.toString(), {
+            headers: { 'x-username': localStorage.getItem('username') }
+        });
         if (res.status === 401) return location.reload();
         let items = await res.json();
 
+        // Range filter (frontend)
         const range = document.getElementById('filterRange').value;
         const today = new Date();
-
         if (range === 'today') {
-        const todayStr = today.toISOString().split('T')[0];
-        items = items.filter(i => i.tanggal === todayStr);
+            const todayStr = today.toISOString().split('T')[0];
+            items = items.filter(i => i.tanggal === todayStr);
         } else if (range === 'week') {
-        const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
-        items = items.filter(i => new Date(i.tanggal) >= weekAgo);
+            const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
+            items = items.filter(i => new Date(i.tanggal) >= weekAgo);
         } else if (range === 'month') {
-        const monthAgo = new Date(today); monthAgo.setMonth(today.getMonth() - 1);
-        items = items.filter(i => new Date(i.tanggal) >= monthAgo);
+            const monthAgo = new Date(today); monthAgo.setMonth(today.getMonth() - 1);
+            items = items.filter(i => new Date(i.tanggal) >= monthAgo);
         }
 
         render(items);
     }
-    document.getElementById('filterRange').addEventListener('change', fetchAndRender);
+
+    // Bind search & sort
+    document.getElementById('searchInput').addEventListener('input', fetchAndRender);
+    document.getElementById('sortSelect').addEventListener('change', fetchAndRender);
 
     // === RENDER DATA ===
     function render(items) {

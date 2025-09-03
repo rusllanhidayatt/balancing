@@ -107,18 +107,51 @@ app.post("/items", (req, res) => {
   }
 });
 
-// READ ALL
+// READ ALL dengan sort & search
 app.get("/items", (req, res) => {
   try {
     const user = getUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const items = readData();
-    if (user.role === "admin") {
-      return res.json(items);
+    let items = readData();
+
+    // Filter user
+    if (user.role !== "admin") {
+      items = items.filter((i) => i.user === user.username);
     }
-    const ownItems = items.filter((i) => i.user === user.username);
-    res.json(ownItems);
+
+    // Search
+    if (req.query.search) {
+      const keyword = req.query.search.toLowerCase();
+      items = items.filter(
+        (i) =>
+          i.nama.toLowerCase().includes(keyword) ||
+          i.keterangan.toLowerCase().includes(keyword)
+      );
+    }
+
+    // Sorting
+    if (req.query.sort) {
+    const field = req.query.sort;
+    const order = req.query.order === "desc" ? -1 : 1;
+
+    items.sort((a, b) => {
+        if (field === "tanggal") {
+        const dateA = new Date(a.tanggal);
+        const dateB = new Date(b.tanggal);
+        return (dateA - dateB) * order;
+        }
+        if (field === "nominal") {
+        return (a.nominal - b.nominal) * order;
+        }
+        // fallback generic
+        if (a[field] < b[field]) return -1 * order;
+        if (a[field] > b[field]) return 1 * order;
+        return 0;
+    });
+    }
+
+    res.json(items);
   } catch (err) {
     console.error("Read items error:", err);
     res.status(500).json({ error: "Failed to read items" });
