@@ -40,7 +40,8 @@ const FIELD_MAP = {
   keterangan: ["keterangan", "Keterangan", "deskripsi", "Deskripsi"],
   tanggal: ["tanggal", "Tanggal", "date", "Date"],
   photoUrl: ["photoUrl", "PhotoUrl", "foto", "Foto"],
-  publicId: ["publicId", "PublicId"]
+  publicId: ["publicId", "PublicId"],
+  username: ["username", "Username", "nama", "Nama"] // 🔥 ambil dari file
 };
 
 function normalizeRecord(record) {
@@ -56,9 +57,10 @@ function normalizeRecord(record) {
   return {
     nominal: Number(findValue(FIELD_MAP.nominal, 0)) || 0,
     keterangan: String(findValue(FIELD_MAP.keterangan, "")),
-    tanggal: String(findValue(FIELD_MAP.tanggal, new Date().toISOString())).slice(0, 10),
+    tanggal: String(findValue(FIELD_MAP.tanggal, new Date().toISOString().split("T")[0])).slice(0, 10),
     photoUrl: findValue(FIELD_MAP.photoUrl, null),
-    publicId: findValue(FIELD_MAP.publicId, null)
+    publicId: findValue(FIELD_MAP.publicId, null),
+    username: String(findValue(FIELD_MAP.username, "guest")) // 🔥 fallback guest
   };
 }
 
@@ -86,17 +88,20 @@ async function parseFile(file) {
 
 async function upsertRecord(normalized) {
   try {
+    // coba update jika ada publicId (anggap publicId = id item)
     if (normalized.publicId) {
-      // coba update kalau sudah ada publicId
       const res = await fetch(`${API_URL}/${normalized.publicId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-username": localStorage.getItem("username")
+          "x-username": normalized.username
         },
         body: JSON.stringify({
-          nama: localStorage.getItem("username"),
-          ...normalized
+          nama: normalized.username,
+          nominal: normalized.nominal,
+          keterangan: normalized.keterangan,
+          tanggal: normalized.tanggal,
+          photoUrl: normalized.photoUrl
         })
       });
 
@@ -108,16 +113,21 @@ async function upsertRecord(normalized) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-username": localStorage.getItem("username")
+        "x-username": normalized.username
       },
       body: JSON.stringify({
-        nama: localStorage.getItem("username"),
-        ...normalized
+        nama: normalized.username,
+        nominal: normalized.nominal,
+        keterangan: normalized.keterangan,
+        tanggal: normalized.tanggal,
+        photoUrl: normalized.photoUrl,
+        publicId: normalized.publicId || null
       })
     });
     if (resInsert.ok) return "inserted";
     return "failed";
-  } catch {
+  } catch (err) {
+    console.error("Upsert error:", err);
     return "failed";
   }
 }
