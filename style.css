@@ -1,0 +1,19 @@
+/* Loader overlay */
+#loadingOverlay {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Pagination */
+#pagination button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+#pagination button.active {
+  background-color: #2563eb;
+  color: white;
+  font-weight: bold;
+}
+#pagination button:hover {
+  background-color: #e5e7eb;
+}
