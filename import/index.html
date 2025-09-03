@@ -16,14 +16,14 @@
             class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
       Import Sekarang
     </button>
-    <p id="status" class="mt-3 text-sm text-gray-600"></p>
+    <pre id="status" class="mt-3 text-sm text-gray-600 whitespace-pre-wrap"></pre>
   </div>
 
   <script>
   const API_URL = "https://balancing-wop-production.up.railway.app/items";
 
   const FIELD_MAP = {
-    username: ["username", "Username"],
+    username: ["username", "Username", "user", "User"],
     nama: ["nama", "Nama"],
     nominal: ["nominal", "Nominal", "jumlah", "Jumlah"],
     keterangan: ["keterangan", "Keterangan"],
@@ -42,9 +42,10 @@
   }
 
   function normalizeRecord(record) {
+    const username = String(findValue(record, FIELD_MAP.username, "admin"));
     return {
-      username: String(findValue(record, FIELD_MAP.username, "guest")),
-      nama: String(findValue(record, FIELD_MAP.nama, "")),
+      username,
+      nama: String(findValue(record, FIELD_MAP.nama, username)), // fallback ke username
       nominal: Number(findValue(record, FIELD_MAP.nominal, 0)) || 0,
       keterangan: String(findValue(record, FIELD_MAP.keterangan, "")),
       tanggal: String(findValue(record, FIELD_MAP.tanggal, new Date().toISOString().split("T")[0])).slice(0, 10),
@@ -105,10 +106,10 @@
 
       if (res.ok) return "inserted";
       const errText = await res.text();
-      console.error("Insert gagal:", errText);
+      document.getElementById("status").textContent += `\n❌ ${normalized.username}/${normalized.nama}: ${errText}`;
       return "failed";
     } catch (err) {
-      console.error("Insert error:", err);
+      document.getElementById("status").textContent += `\n❌ ${normalized.username}/${normalized.nama}: ${err.message}`;
       return "failed";
     }
   }
@@ -117,6 +118,8 @@
     const file = document.getElementById("fileInput").files[0];
     const status = document.getElementById("status");
     if (!file) return alert("Pilih file CSV/Excel dulu");
+
+    status.textContent = "⏳ Sedang memproses...";
 
     try {
       const rawRecords = await loadParser(file);
@@ -127,7 +130,7 @@
         const normalized = normalizeRecord(r);
 
         if (!normalized.nama || isNaN(normalized.nominal)) {
-          console.warn("Skip record invalid:", r);
+          status.textContent += `\n⚠️ Skip record invalid: ${JSON.stringify(r)}`;
           failed++;
           continue;
         }
