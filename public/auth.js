@@ -1,55 +1,51 @@
-import { fetchAndRender } from './data.js';
-
 const API_URL = "https://balancing-wop-production.up.railway.app";
 
-export function initAuth() {
-  const app = document.getElementById('app');
-  const loginScreen = document.getElementById('loginScreen');
+const usernameInput = document.getElementById("userInput");
+const passwordInput = document.getElementById("passInput");
+const loginBtn = document.getElementById("btnLogin");
 
-  // enter key login
-  loginScreen.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      document.getElementById('btnLogin').click();
+function showError(msg) {
+  alert("❌ " + msg);
+}
+
+async function handleLogin() {
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!username) return showError("Username tidak valid minta ke Ruslan Kasep!");
+  if (!password) return showError("Password tidak valid minta ke Ruslan Kasep!");
+  if (password !== "fenisayangruslan") return showError("Password salah minta ke Ruslan Kasep!");
+
+  try {
+    const res = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      return showError(err.error || "Login gagal");
     }
-  });
 
-  // tombol login
-  document.getElementById('btnLogin').addEventListener('click', async () => {
-    const u = (document.getElementById('userInput').value || '').trim();
-    const p = document.getElementById('passInput').value || '';
-    if (!u) return alert('Masukkan username');
-    if (p !== 'fenisayangruslan') return alert('Password silahkan minta ke Ruslan Kasep!');
+    const data = await res.json();
+    localStorage.setItem("username", data.user.username);
+    localStorage.setItem("role", data.user.role);
 
-    try {
-      const res = await fetch(API_URL + '/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login gagal');
-      localStorage.setItem('loggedIn', 'true');
-      localStorage.setItem('username', data.user.username);
-      localStorage.setItem('role', data.user.role);
-      showApp();
-    } catch (e) {
-      alert(e.message);
-    }
-  });
-
-  // tombol logout
-  document.getElementById('btnLogout').addEventListener('click', () => {
-    localStorage.clear();
-    location.reload();
-  });
-
-  // auto-login kalau sudah ada session
-  if (localStorage.getItem('loggedIn')) showApp();
-
-  function showApp() {
-    loginScreen.classList.add('hidden');
-    app.classList.remove('hidden');
-    fetchAndRender();
+    // Sembunyikan login, tampilkan dashboard
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+  } catch (err) {
+    showError("Gagal koneksi ke server");
   }
 }
+
+// Klik tombol
+loginBtn.addEventListener("click", handleLogin);
+
+// Tekan Enter di input username atau password
+[usernameInput, passwordInput].forEach((input) => {
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
+});
