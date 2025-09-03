@@ -1,7 +1,8 @@
 {
-    "name": "crud-json-railway",
+    "name": "balancing-api",
     "version": "1.0.0",
-    "description": "Simple CRUD API using a JSON file (for demo / small apps).",
+    "type": "commonjs",
+    "description": "Finance balancing API with image upload and data import features simple backend server.",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
@@ -13,7 +14,8 @@
         "cors": "^2.8.5",
         "express": "^4.18.2",
         "multer": "^1.4.5-lts.1",
-        "sharp": "^0.33.5"
+        "sharp": "^0.33.5",
+        "axios": "^1.7.0"
     },
     "devDependencies": {
         "autoprefixer": "^10.4.21",

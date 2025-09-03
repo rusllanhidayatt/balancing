@@ -1,13 +1,15 @@
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Finance Apps</title>
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Finance Apps</title>
+        <link rel="icon" type="image/png" href="favicon.png" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="public/style.css" />
+    </head>
+
+    <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
 
     <!-- LOGIN SCREEN -->
     <main id="loginScreen" class="min-h-screen flex items-center justify-center">
@@ -21,24 +23,25 @@
 
     <!-- DASHBOARD -->
     <div id="app" class="hidden">
-      <!-- Navbar -->
-      <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 class="font-bold text-lg">📊 Balancing — Keuangan</h1>
-        <div class="flex flex-wrap items-center gap-2">
-          <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
-            <option value="all">Semua</option>
-            <option value="today">Hari ini</option>
-            <option value="week">Minggu ini</option>
-            <option value="month">Bulan ini</option>
-          </select>
-          <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
-          <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
-          <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
-        </div>
-      </nav>
 
-      <!-- Content -->
-      <section class="max-w-5xl mx-auto p-6">
+        <!-- Navbar -->
+        <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <h1 class="font-bold text-lg">📊 Balancing — Keuangan</h1>
+            <div class="flex flex-wrap items-center gap-2">
+            <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
+                <option value="all">Semua</option>
+                <option value="today">Hari ini</option>
+                <option value="week">Minggu ini</option>
+                <option value="month">Bulan ini</option>
+            </select>
+            <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
+            <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
+            <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <section class="max-w-5xl mx-auto p-6">
 
         <!-- Summary -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -83,209 +86,43 @@
 
         <!-- List Transaksi -->
         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow max-w-5xl mx-auto mb-10">
-          <!-- Table Desktop -->
-          <div class="hidden md:block overflow-x-auto">
+
+        <!-- Table Desktop -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full border-collapse">
-              <thead class="bg-gray-100 dark:bg-gray-700">
+            <thead class="bg-gray-100 dark:bg-gray-700">
                 <tr>
-                  <th class="p-3 text-left">Nominal</th>
-                  <th class="p-3 text-left">Keterangan</th>
-                  <th class="p-3 text-left">Tanggal</th>
-                  <th class="p-3 text-center">Bukti</th>
-                  <th class="p-3 text-center">Aksi</th>
+                <th class="p-3 text-left">Nominal</th>
+                <th class="p-3 text-left">Keterangan</th>
+                <th class="p-3 text-left">Tanggal</th>
+                <th class="p-3 text-center">Bukti</th>
+                <th class="p-3 text-center">Aksi</th>
                 </tr>
-              </thead>
-              <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
             </table>
-          </div>
-          <!-- Cards Mobile -->
-          <div id="cardList" class="md:hidden space-y-3 mt-4"></div>
+        </div>
+        
+        <!-- Cards Mobile -->
+        <div id="cardList" class="md:hidden space-y-3 mt-4"></div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="flex justify-center gap-2 mt-6"></div>
         </div>
 
-      </section>
+        </section>
     </div>
 
-    <script>
-      const API_URL = "https://balancing-wop-production.up.railway.app";
-      const UPLOAD_ENDPOINT = API_URL + "/upload";
-      const ITEMS_ENDPOINT = API_URL + "/items";
-      
-      document.getElementById('loginScreen').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            document.getElementById('btnLogin').click();
-        }
-      });
-      const app = document.getElementById('app');
+    <!-- Modal Foto Bukti -->
+    <div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <div class="relative max-w-full max-h-full p-2">
+        <button onclick="closeModal()" 
+                class="absolute top-2 right-2 text-white text-2xl font-bold">✖</button>
+        <img id="modalImage" src="" class="max-h-[90vh] max-w-[90vw] rounded shadow-lg">
+    </div>
+    </div>
 
-      // === LOGIN ===
-      document.getElementById('btnLogin').addEventListener('click', async () => {
-        const u = (document.getElementById('userInput').value || '').trim();
-        const p = document.getElementById('passInput').value || '';
-        if (!u) return alert('Masukkan username');
-        if (p !== 'fenisayangruslan') return alert('Password silahkan minta ke Ruslan Kasep!');
-        try {
-          const res = await fetch(API_URL + '/login', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: u })
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Login gagal');
-          localStorage.setItem('loggedIn', 'true');
-          localStorage.setItem('username', data.user.username);
-          localStorage.setItem('role', data.user.role);
-          showApp();
-        } catch (e) { alert(e.message); }
-      });
-      document.getElementById('btnLogout').addEventListener('click', () => { localStorage.clear(); location.reload(); });
-      if (localStorage.getItem('loggedIn')) showApp();
-
-      // === THEME AUTO BY TIME ===
-      function applyThemeByTime() {
-        const hour = new Date().getHours();
-        if (hour >= 6 && hour < 18) {
-          document.documentElement.classList.remove('dark');
-        } else {
-          document.documentElement.classList.add('dark');
-        }
-      }
-      applyThemeByTime();
-
-      // === HELPERS ===
-      function fmtRp(num) { return 'Rp ' + Number(num).toLocaleString('id-ID'); }
-      function escapeHtml(s) { return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-
-      function showApp() {
-        loginScreen.classList.add('hidden');
-        app.classList.remove('hidden');
-        fetchAndRender();
-      }
-
-      // === FETCH DATA ===
-      async function fetchAndRender() {
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
-        if (res.status === 401) return location.reload();
-        let items = await res.json();
-
-        const range = document.getElementById('filterRange').value;
-        const today = new Date();
-
-        if (range === 'today') {
-          const todayStr = today.toISOString().split('T')[0];
-          items = items.filter(i => i.tanggal === todayStr);
-        } else if (range === 'week') {
-          const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
-          items = items.filter(i => new Date(i.tanggal) >= weekAgo);
-        } else if (range === 'month') {
-          const monthAgo = new Date(today); monthAgo.setMonth(today.getMonth() - 1);
-          items = items.filter(i => new Date(i.tanggal) >= monthAgo);
-        }
-
-        render(items);
-      }
-      document.getElementById('filterRange').addEventListener('change', fetchAndRender);
-
-      // === RENDER DATA ===
-      function render(items) {
-        let income = 0, expense = 0;
-        items.forEach(i => { const n = Number(i.nominal) || 0; if (n > 0) income += n; else expense += n; });
-        document.getElementById('totalIncome').textContent = fmtRp(income);
-        document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
-        document.getElementById('totalBalance').textContent = fmtRp(income + expense);
-
-        const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
-        const card = document.getElementById('cardList'); card.innerHTML = '';
-
-        items.forEach(it => {
-          tbody.innerHTML += `
-            <tr class="border-b">
-              <td class="p-2 ${it.nominal >= 0 ? 'text-green-600' : 'text-red-600'}">${fmtRp(it.nominal)}</td>
-              <td class="p-2">${escapeHtml(it.keterangan || '-')}</td>
-              <td class="p-2">${escapeHtml(it.tanggal || '-')}</td>
-              <td class="p-2 text-center">${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-500 underline">Lihat</a>` : '-'}</td>
-              <td class="p-2 text-center"><button onclick="deleteItem(${it.id})" class="text-red-600">Hapus</button></td>
-            </tr>`;
-          card.innerHTML += `
-            <div class="bg-gray-700 p-4 rounded-lg shadow">
-              <div class="flex justify-between">
-                <span>${escapeHtml(it.tanggal || '-')}</span>
-                <span class="${it.nominal >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${fmtRp(it.nominal)}</span>
-              </div>
-              <p class="text-sm mt-2">${escapeHtml(it.keterangan || '-')}</p>
-              <div class="flex justify-between mt-3 text-sm">
-                ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
-                <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
-              </div>
-            </div>`;
-        });
-      }
-
-      // === NOMINAL FORMAT ===
-      const nominalInput = document.getElementById('fieldNominal');
-      nominalInput.addEventListener('input', (e) => {
-        let raw = e.target.value.replace(/\D/g, '');
-        if (!raw) { e.target.value = ''; return; }
-        e.target.value = Number(raw).toLocaleString('id-ID');
-      });
-
-      // === FORM SUBMIT ===
-      document.getElementById('itemForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nominalRaw = nominalInput.value.replace(/\./g, '').replace(/,/g, '');
-        const nominal = Number(nominalRaw);
-        const keterangan = document.getElementById('fieldKeterangan').value.trim();
-        const tanggal = document.getElementById('fieldTanggal').value || new Date().toISOString().split('T')[0];
-        const file = document.getElementById('fileInput').files[0];
-        const statusEl = document.getElementById('uploadStatus'); statusEl.textContent = '';
-        if (!nominal) return alert('Nominal wajib diisi');
-
-        let photoUrl = null, publicId = null;
-        try {
-          if (file) {
-            statusEl.textContent = 'Uploading...';
-            const fd = new FormData(); fd.append('file', file);
-            const up = await fetch(UPLOAD_ENDPOINT, { method: 'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
-            const j = await up.json(); if (!up.ok) throw new Error(j.error || 'Upload gagal');
-            photoUrl = j.link || null; publicId = j.id || null;
-            statusEl.textContent = 'Upload selesai';
-          }
-          const createRes = await fetch(ITEMS_ENDPOINT, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': localStorage.getItem('username') },
-            body: JSON.stringify({ nama: localStorage.getItem('username'), nominal, keterangan, tanggal, photoUrl, publicId })
-          });
-          if (!createRes.ok) throw new Error(await createRes.text());
-          document.getElementById('itemForm').reset(); nominalInput.value = '';
-          statusEl.textContent = 'Transaksi tersimpan'; setTimeout(() => statusEl.textContent = '', 2000);
-          fetchAndRender();
-        } catch (err) { alert('Gagal: ' + err.message); statusEl.textContent = ''; }
-      });
-
-      // === DELETE ===
-      async function deleteItem(id) {
-        if (!confirm('Hapus transaksi?')) return;
-        await fetch(ITEMS_ENDPOINT + '/' + id, { method: 'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
-        fetchAndRender();
-      }
-
-      // === EXPORT ===
-      document.getElementById('btnExportCSV').addEventListener('click', async () => {
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
-        const data = await res.json(); if (!data.length) return alert('Data kosong');
-        const headers = ['Nominal','Keterangan','Tanggal','PhotoUrl'];
-        const rows = data.map(i => [i.nominal,i.keterangan,i.tanggal,i.photoUrl||'']);
-        const csv = [headers, ...rows].map(r => r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
-        const a=document.createElement('a'); a.href=url; a.download='keuangan.csv'; a.click(); URL.revokeObjectURL(url);
-      });
-
-      document.getElementById('btnExportExcel').addEventListener('click', async () => {
-        if (typeof XLSX === 'undefined') await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
-        const data = await res.json(); if (!data.length) return alert('Data kosong');
-        const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Keuangan'); XLSX.writeFile(wb, 'keuangan.xlsx');
-      });
-      function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
-    </script>
+    <script src="public/modal.js"></script>
+    <script type="module" src="/public/app.js"></script>
   </body>
 </html>
