@@ -1,48 +1,45 @@
 <!doctype html>
 <html lang="id">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>Finance Apps</title>
-        <link rel="icon" type="image/png" href="favicon.png" />
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link rel="stylesheet" href="public/style.css" />
-    </head>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>📊 Balancing — Finance App</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="public/style.css" />
+  </head>
 
-    <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
-
+  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
     <!-- LOGIN SCREEN -->
     <main id="loginScreen" class="min-h-screen flex items-center justify-center">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 w-full max-w-md">
         <h2 class="text-2xl font-bold mb-4 text-center">🔐 Masuk</h2>
-        <input id="userInput" class="w-full p-3 mb-3 rounded border dark:bg-gray-700" placeholder="username" />
-        <input id="passInput" type="password" class="w-full p-3 mb-4 rounded border dark:bg-gray-700" placeholder="password" />
+        <input id="username" class="w-full p-3 mb-3 rounded border dark:bg-gray-700" placeholder="Username" />
+        <input id="password" type="password" class="w-full p-3 mb-4 rounded border dark:bg-gray-700" placeholder="Password" />
         <button id="btnLogin" class="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700">Masuk</button>
       </div>
     </main>
 
     <!-- DASHBOARD -->
     <div id="app" class="hidden">
+      <!-- Navbar -->
+      <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <h1 class="font-bold text-lg">📊 Balancing — Keuangan</h1>
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
+            <option value="all">Semua</option>
+            <option value="today">Hari ini</option>
+            <option value="week">Minggu ini</option>
+            <option value="month">Bulan ini</option>
+          </select>
+          <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
+          <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
+          <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
+        </div>
+      </nav>
 
-        <!-- Navbar -->
-        <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <h1 class="font-bold text-lg">📊 Balancing — Keuangan</h1>
-            <div class="flex flex-wrap items-center gap-2">
-            <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
-                <option value="all">Semua</option>
-                <option value="today">Hari ini</option>
-                <option value="week">Minggu ini</option>
-                <option value="month">Bulan ini</option>
-            </select>
-            <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
-            <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
-            <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
-            </div>
-        </nav>
-
-        <!-- Content -->
-        <section class="max-w-5xl mx-auto p-6">
-
+      <!-- Content -->
+      <section class="max-w-5xl mx-auto p-6">
         <!-- Summary -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
@@ -63,13 +60,11 @@
         <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg max-w-3xl mx-auto mt-6 mb-10">
           <h2 class="text-xl font-semibold mb-4">Tambah Transaksi</h2>
           <form id="itemForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input id="fieldNominal" type="text" inputmode="numeric"
-              placeholder="Nominal (positif/pemasukan)"
+            <input id="fieldNominal" type="text" inputmode="numeric" placeholder="Nominal (positif/pemasukan)"
               class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
             <input id="fieldKeterangan" type="text" placeholder="Keterangan"
               class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input id="fieldTanggal" type="date"
-              class="w-full h-11 px-3 rounded bg-gray-700 text-white" />
+            <input id="fieldTanggal" type="date" class="w-full h-11 px-3 rounded bg-gray-700 text-white" />
             <input id="fileInput" type="file" accept="image/*"
               class="md:col-span-2 w-full h-11 text-sm text-gray-300
                      file:mr-4 file:py-2 file:px-4
@@ -86,31 +81,27 @@
 
         <!-- List Transaksi -->
         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow max-w-5xl mx-auto mb-10">
-
-        <!-- Table Desktop -->
-        <div class="hidden md:block overflow-x-auto">
+          <!-- Table Desktop -->
+          <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full border-collapse">
-            <thead class="bg-gray-100 dark:bg-gray-700">
+              <thead class="bg-gray-100 dark:bg-gray-700">
                 <tr>
-                <th class="p-3 text-left">Nominal</th>
-                <th class="p-3 text-left">Keterangan</th>
-                <th class="p-3 text-left">Tanggal</th>
-                <th class="p-3 text-center">Bukti</th>
-                <th class="p-3 text-center">Aksi</th>
+                  <th class="p-3 text-left">Nominal</th>
+                  <th class="p-3 text-left">Keterangan</th>
+                  <th class="p-3 text-left">Tanggal</th>
+                  <th class="p-3 text-center">Bukti</th>
+                  <th class="p-3 text-center">Aksi</th>
                 </tr>
-            </thead>
-            <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
+              </thead>
+              <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
             </table>
+          </div>
+          <!-- Cards Mobile -->
+          <div id="cardList" class="md:hidden space-y-3 mt-4"></div>
+          <!-- Pagination -->
+          <div id="pagination" class="flex justify-center gap-2 mt-6"></div>
         </div>
-        
-        <!-- Cards Mobile -->
-        <div id="cardList" class="md:hidden space-y-3 mt-4"></div>
-
-        <!-- Pagination -->
-        <div id="pagination" class="flex justify-center gap-2 mt-6"></div>
-        </div>
-
-        </section>
+      </section>
     </div>
 
     <!-- Modal Foto Bukti -->
@@ -121,6 +112,11 @@
       </div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+    </div>
+
     <!-- Scripts -->
     <script type="module" src="public/modal.js"></script>
     <script type="module" src="public/app.js"></script>
@@ -129,5 +125,6 @@
         navigator.serviceWorker.register("public/service-worker.js");
       }
     </script>
+
   </body>
 </html>
