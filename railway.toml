@@ -4,7 +4,7 @@
 builder = "NIXPACKS"
 
 [phases.setup]
-nixPkgs = ["nodejs-20_x", "npm"]
+nixPkgs = ["nodejs", "npm"]
 
 [phases.build]
 # Gunakan npm install biar fleksibel, tidak strict kayak npm ci
