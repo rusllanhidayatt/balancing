@@ -1,6 +1,37 @@
-// import.js
-import { loadScript } from "../public/utils.js";
+// ==============================
+// util functions
+// ==============================
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, (m) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
+  );
+}
 
+function fmtRp(num) {
+  if (num == null) return 'Rp 0';
+  return 'Rp ' + Number(num).toLocaleString('id-ID');
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+function applyThemeByTime() {
+  const hour = new Date().getHours();
+  if (hour >= 18 || hour < 6) document.documentElement.classList.add('dark');
+  else document.documentElement.classList.remove('dark');
+}
+
+// ==============================
+// import logic
+// ==============================
 const API_URL = "https://balancing-wop-production.up.railway.app/items";
 
 // standar nama kolom yang kita butuhkan
