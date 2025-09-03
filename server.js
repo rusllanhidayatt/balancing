@@ -107,7 +107,7 @@ app.post("/items", (req, res) => {
   }
 });
 
-// READ ALL dengan sort & search
+// === GET ITEMS ===
 app.get("/items", (req, res) => {
   try {
     const user = getUser(req);
@@ -115,43 +115,52 @@ app.get("/items", (req, res) => {
 
     let items = readData();
 
-    // Filter user
+    // Filter user (non-admin cuma lihat datanya sendiri)
     if (user.role !== "admin") {
-      items = items.filter((i) => i.user === user.username);
+      items = items.filter(i => i.user === user.username);
     }
 
+    const { search, sort, order, page, limit } = req.query;
+
     // Search
-    if (req.query.search) {
-      const keyword = req.query.search.toLowerCase();
-      items = items.filter(
-        (i) =>
-          i.nama.toLowerCase().includes(keyword) ||
-          i.keterangan.toLowerCase().includes(keyword)
+    if (search) {
+      const s = search.toLowerCase();
+      items = items.filter(i =>
+        (i.keterangan || "").toLowerCase().includes(s) ||
+        (String(i.nominal) || "").toLowerCase().includes(s) ||
+        (i.nama || "").toLowerCase().includes(s)
       );
     }
 
-    // Sorting
-    if (req.query.sort) {
-    const field = req.query.sort;
-    const order = req.query.order === "desc" ? -1 : 1;
-
-    items.sort((a, b) => {
-        if (field === "tanggal") {
-        const dateA = new Date(a.tanggal);
-        const dateB = new Date(b.tanggal);
-        return (dateA - dateB) * order;
+    // Sort
+    if (sort) {
+      items.sort((a, b) => {
+        let valA = a[sort];
+        let valB = b[sort];
+        if (sort === "tanggal") {
+          valA = new Date(valA);
+          valB = new Date(valB);
         }
-        if (field === "nominal") {
-        return (a.nominal - b.nominal) * order;
+        if (typeof valA === "string") {
+        return order === "desc" ? valB.localeCompare(valA) : valA.localeCompare(valB);
+        } else {
+        return order === "desc" ? (valB - valA) : (valA - valB);
         }
-        // fallback generic
-        if (a[field] < b[field]) return -1 * order;
-        if (a[field] > b[field]) return 1 * order;
-        return 0;
-    });
+      });
     }
 
-    res.json(items);
+    const total = items.length;
+
+    // Pagination
+    let paginated = items;
+    if (page && limit) {
+      const p = parseInt(page);
+      const l = parseInt(limit);
+      const start = (p - 1) * l;
+      paginated = items.slice(start, start + l);
+    }
+
+    res.json({ data: paginated, total });
   } catch (err) {
     console.error("Read items error:", err);
     res.status(500).json({ error: "Failed to read items" });
