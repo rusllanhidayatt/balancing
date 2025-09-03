@@ -28,7 +28,7 @@
     <div id="app" class="hidden">
       <!-- Navbar -->
       <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 class="font-bold text-lg">📊 Balancing — Keuangan</h1>
+        <h1 class="font-bold text-lg">📊 Finance</h1>
         <div class="flex flex-wrap items-center gap-2">
           <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
             <option value="all">Semua</option>
@@ -144,7 +144,7 @@
     document.getElementById('btnLogin').addEventListener('click', async () => {
         const u = (document.getElementById('userInput').value || '').trim();
         const p = document.getElementById('passInput').value || '';
-        if (!u) return alert('Masukkan username');
+        if (!u) return alert('Masukkan username kata Ruslan Kasep loh!');
         if (p !== 'fenisayangruslan') return alert('Password silahkan minta ke Ruslan Kasep!');
         try {
         const res = await fetch(API_URL + '/login', {

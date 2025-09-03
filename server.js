@@ -59,7 +59,7 @@ function writeData(data) {
 app.post("/login", (req, res) => {
   const { username } = req.body || {};
   const user = USERS.find((u) => u.username === username);
-  if (!user) return res.status(401).json({ error: "User tidak terdaftar" });
+  if (!user) return res.status(401).json({ error: "User tidak terdaftar bilang sana ke Ruslan Kasep!" });
   res.json({ success: true, user });
 });
 
