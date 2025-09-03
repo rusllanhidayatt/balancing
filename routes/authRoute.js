@@ -3,13 +3,17 @@ const { USERS } = require("../utils/users");
 const router = express.Router();
 
 router.post("/", (req, res) => {
-  const { username } = req.body || {};
-  if (!username) return res.status(400).json({ error: "Username wajib diisi" });
+  const { username, password } = req.body || {};
 
-  const user = USERS.find((u) => u.username === username);
-  if (!user) return res.status(401).json({ error: "User tidak terdaftar" });
+  const user = USERS.find(
+    (u) => u.username === username && u.password === password
+  );
 
-  res.json({ success: true, user });
+  if (!user) {
+    return res.status(401).json({ error: "Username atau password salah minta ke Ruslan Kasep!" });
+  }
+
+  res.json({ success: true, user: { username: user.username } });
 });
 
 module.exports = router;

@@ -12,15 +12,15 @@ async function handleLogin() {
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
 
-  if (!username) return showError("Username tidak valid minta ke Ruslan Kasep!");
-  if (!password) return showError("Password tidak valid minta ke Ruslan Kasep!");
-  if (password !== "fenisayangruslan") return showError("Password salah minta ke Ruslan Kasep!");
+  if (!username) return showError("Username tidak valid, minta ke Ruslan Kasep!");
+  if (!password) return showError("Password tidak valid, minta ke Ruslan Kasep!");
+  if (password !== "fenisayangruslan") return showError("Password salah, minta ke Ruslan Kasep!");
 
   try {
     const res = await fetch(`${API_URL}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
+      body: JSON.stringify({ username }), // cuma kirim username
     });
 
     if (!res.ok) {
@@ -45,7 +45,10 @@ loginBtn.addEventListener("click", handleLogin);
 
 // Tekan Enter di input username atau password
 [usernameInput, passwordInput].forEach((input) => {
-  input.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") handleLogin();
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // cegah reload form
+      handleLogin();
+    }
   });
 });
