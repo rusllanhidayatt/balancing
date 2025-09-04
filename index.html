@@ -387,72 +387,62 @@
     }
 
     // === MODAL FUNCS ===
+    function showModal() {
+    const modal = document.getElementById('globalModal');
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.add('show'), 10); // delay biar animasi kebaca
+    }
+
+    function closeModal() {
+    const modal = document.getElementById('globalModal');
+    modal.classList.remove('show');
+    setTimeout(() => modal.classList.add('hidden'), 300); // sesuai durasi CSS
+    }
+
     function showAlert(msg) {
-      document.getElementById('modalContent').innerHTML = `<p>${msg}</p>`;
-      document.getElementById('modalActions').innerHTML = `
+    document.getElementById('modalContent').innerHTML = `<p>${msg}</p>`;
+    document.getElementById('modalActions').innerHTML = `
         <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
-      `;
-      openModal();
+    `;
+    showModal();
     }
 
     function showConfirm(msg, onYes) {
-      document.getElementById('modalContent').innerHTML = `<p>${msg}</p>`;
-      document.getElementById('modalActions').innerHTML = `
+    document.getElementById('modalContent').innerHTML = `<p>${msg}</p>`;
+    document.getElementById('modalActions').innerHTML = `
         <button onclick="closeModal()" class="bg-gray-400 text-white px-4 py-2 rounded">No</button>
         <button onclick="closeModal(); (${onYes.toString()})();" class="bg-red-600 text-white px-4 py-2 rounded">Yes</button>
-      `;
-      openModal();
+    `;
+    showModal();
     }
 
     function showDetail(item) {
-      document.getElementById('modalContent').innerHTML = `
+    document.getElementById('modalContent').innerHTML = `
         <h3 class="font-bold text-lg mb-2">Detail Transaksi</h3>
         <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
         <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || '-')}</p>
         <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || '-')}</p>
         <p><b>Dibuat:</b> ${escapeHtml(item.createdAt || '-')}</p>
-        <p><b>Username:</b> ${escapeHtml(item.username || localStorage.getItem('username') || '-')}</p>
+        <p><b>Oleh:</b> ${escapeHtml(item.username || '-')}</p>
         ${item.photoUrl ? `<p class="mt-2"><b>Foto:</b><br>
-          <a href="${item.photoUrl}" target="_blank">
+        <a href="${item.photoUrl}" target="_blank">
             <img src="${item.photoUrl}" alt="foto" class="mt-1 max-h-40 rounded" />
-          </a></p>` : ''}
-      `;
-      document.getElementById('modalActions').innerHTML = `
+        </a></p>` : ''}
+    `;
+    document.getElementById('modalActions').innerHTML = `
         <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">Tutup</button>
-      `;
-      openModal();
+    `;
+    showModal();
     }
 
-    function openModal() {
-      const modal = document.getElementById('globalModal');
-      const box = modal.querySelector('.bg-white');
-      modal.classList.remove('hidden');
-      setTimeout(() => {
-        modal.classList.add('show');
-        box.classList.add('scale-100', 'opacity-100');
-      }, 10);
-    }
-
-    function closeModal() {
-      const modal = document.getElementById('globalModal');
-      const box = modal.querySelector('.bg-white');
-      modal.classList.remove('show');
-      box.classList.remove('scale-100', 'opacity-100');
-      modal.addEventListener('transitionend', () => {
-        modal.classList.add('hidden');
-      }, { once: true });
-    }
-
-    // close modal jika klik luar
+    // Tutup modal jika klik luar
     document.getElementById('globalModal').addEventListener('click', (e) => {
-      if (e.target.id === 'globalModal') closeModal();
+    if (e.target.id === 'globalModal') closeModal();
     });
 
     // Tutup modal pakai ESC
     document.addEventListener('keydown', (e) => {
-      if (e.key === "Escape") {
-        closeModal();
-      }
+    if (e.key === "Escape") closeModal();
     });
 
     function showLoading(b) { document.getElementById('loadingOverlay').classList.toggle('hidden', !b); }
