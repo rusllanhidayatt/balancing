@@ -169,7 +169,6 @@
 
         // === MODAL / ALERT SYSTEM ===
         const modalContainer = document.getElementById("modalContainer");
-        const modalContent = document.getElementById("modalContent");
         const modalBody = document.getElementById("modalBody");
         const modalClose = document.getElementById("modalClose");
 
@@ -177,6 +176,10 @@
         const alertMessage = document.getElementById("alertMessage");
         const alertOk = document.getElementById("alertOk");
         const alertCancel = document.getElementById("alertCancel");
+
+        // === CACHE ITEM TERAKHIR DARI LIST (UNTUK DETAIL) ===
+        let lastItemsCache = [];
+        const itemsById = new Map();
 
         function showModal(html) {
         modalBody.innerHTML = html;
@@ -191,19 +194,14 @@
         function showAlert(message, type = "info", timeout = 3000) {
         alertMessage.textContent = message;
         alertContainer.classList.remove("hidden");
-
-        // Style
         alertMessage.className =
             type === "error"
             ? "mb-4 text-red-600 dark:text-red-400"
             : "mb-4 text-green-600 dark:text-green-400";
 
-        // Auto close
-        setTimeout(() => hideAlert(), timeout);
-
-        // Hide confirm buttons
         alertOk.style.display = "none";
         alertCancel.style.display = "none";
+        setTimeout(() => hideAlert(), timeout);
         }
         function hideAlert() {
         alertContainer.classList.add("hidden");
@@ -255,7 +253,9 @@
         const u = (document.getElementById("userInput").value || "").trim();
         const p = document.getElementById("passInput").value || "";
         if (!u) return showAlert("Masukkan username kata Ruslan Kasep!", "error");
-        if (p !== "fenisayangruslan") return showAlert("Password salah minta ke Ruslan Kasep!", "error");
+        if (p !== "fenisayangruslan")
+            return showAlert("Password salah minta ke Ruslan Kasep!", "error");
+
         try {
             const res = await fetch(API_URL + "/login", {
             method: "POST",
@@ -341,13 +341,14 @@
         // === Fetch with filters ===
         async function fetchAndRender() {
         loadingOverlay.classList.remove("hidden");
-        const params = new URLSearchParams();
 
-        // Search
+        const params = new URLSearchParams();
+        params.append("page", currentPage);
+        params.append("limit", limit);
+
         const keyword = document.getElementById("searchInput").value.trim();
         if (keyword) params.append("search", keyword);
 
-        // Sort
         const sortVal = document.getElementById("sortSelect").value;
         if (sortVal === "date_desc") {
             params.append("sort", "tanggal");
@@ -366,43 +367,73 @@
             params.append("order", "asc");
         }
 
-        // Range filter
         const rangeVal = document.getElementById("filterRange").value;
         if (rangeVal !== "all") params.append("range", rangeVal);
 
-        // ===== Fetch summary tanpa pagination =====
-        const resSummary = await fetch(ITEMS_ENDPOINT + "?" + params.toString(), {
+        const listReq = fetch(ITEMS_ENDPOINT + "?" + params.toString(), {
             headers: { "x-username": localStorage.getItem("username") },
         });
-        const { data: allItems } = await resSummary.json();
-        updateSummary(allItems);
 
-        // ===== Fetch list dengan pagination =====
-        params.append("page", currentPage);
-        params.append("limit", limit);
+        const allReq = fetchAllForSummary();
+
+        const res = await listReq;
+        if (res.status === 401) return location.reload();
+        const { data: items, total } = await res.json();
+
+        const all = await allReq;
+        let inc = 0,
+            exp = 0;
+        all.forEach((i) => {
+            const n = Number(i.nominal) || 0;
+            if (n > 0) inc += n;
+            else exp += n;
+        });
+        document.getElementById("totalIncome").textContent = fmtRp(inc);
+        document.getElementById("totalExpense").textContent = fmtRp(Math.abs(exp));
+        document.getElementById("totalBalance").textContent = fmtRp(inc + exp);
+
+        render(items);
+        renderPagination(total);
+
+        loadingOverlay.classList.add("hidden");
+        }
+
+        // === Ambil semua data terfilter (tanpa pagination) ===
+        async function fetchAllForSummary() {
+        const params = new URLSearchParams();
+
+        const keyword = document.getElementById("searchInput").value.trim();
+        if (keyword) params.append("search", keyword);
+
+        const sortVal = document.getElementById("sortSelect").value;
+        if (sortVal === "date_desc") {
+            params.append("sort", "tanggal");
+            params.append("order", "desc");
+        }
+        if (sortVal === "date_asc") {
+            params.append("sort", "tanggal");
+            params.append("order", "asc");
+        }
+        if (sortVal === "nominal_desc") {
+            params.append("sort", "nominal");
+            params.append("order", "desc");
+        }
+        if (sortVal === "nominal_asc") {
+            params.append("sort", "nominal");
+            params.append("order", "asc");
+        }
+
+        const rangeVal = document.getElementById("filterRange").value;
+        if (rangeVal !== "all") params.append("range", rangeVal);
+
+        params.append("page", 1);
+        params.append("limit", 100000);
 
         const res = await fetch(ITEMS_ENDPOINT + "?" + params.toString(), {
             headers: { "x-username": localStorage.getItem("username") },
         });
-        if (res.status === 401) return location.reload();
-
-        const { data: items, total } = await res.json();
-        render(items);
-        renderPagination(total);
-        loadingOverlay.classList.add("hidden");
-        }
-
-        // === Update Summary ===
-        function updateSummary(items) {
-        let income = 0, expense = 0;
-        items.forEach((i) => {
-            const n = Number(i.nominal) || 0;
-            if (n > 0) income += n;
-            else expense += n;
-        });
-        document.getElementById("totalIncome").textContent = fmtRp(income);
-        document.getElementById("totalExpense").textContent = fmtRp(Math.abs(expense));
-        document.getElementById("totalBalance").textContent = fmtRp(income + expense);
+        const { data: all } = await res.json();
+        return all || [];
         }
 
         // === Render Pagination ===
@@ -412,7 +443,6 @@
         const totalPages = Math.ceil(totalItems / limit);
         if (totalPages <= 1) return;
 
-        // Prev
         const prevBtn = document.createElement("button");
         prevBtn.textContent = "Prev";
         prevBtn.disabled = currentPage === 1;
@@ -429,7 +459,6 @@
         };
         pagination.appendChild(prevBtn);
 
-        // Pages
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement("button");
             btn.textContent = i;
@@ -443,7 +472,6 @@
             pagination.appendChild(btn);
         }
 
-        // Next
         const nextBtn = document.createElement("button");
         nextBtn.textContent = "Next";
         nextBtn.disabled = currentPage === totalPages;
@@ -496,13 +524,20 @@
 
         // === RENDER DATA ===
         function render(items) {
+        lastItemsCache = items || [];
+        itemsById.clear();
+        lastItemsCache.forEach((it) =>
+            itemsById.set(String(it.id || it._id), it)
+        );
+
         const tbody = document.getElementById("tableBody");
         tbody.innerHTML = "";
         const card = document.getElementById("cardList");
         card.innerHTML = "";
 
-        items.forEach((it) => {
-            // Table row
+        lastItemsCache.forEach((it) => {
+            const itemId = it.id || it._id;
+
             tbody.innerHTML += `
             <tr class="border-b">
                 <td class="p-2 ${it.nominal >= 0 ? "text-green-600" : "text-red-600"}">${fmtRp(it.nominal)}</td>
@@ -511,17 +546,16 @@
                 <td class="p-2 text-center">
                 ${
                     it.photoUrl
-                    ? `<button onclick="openDetail('${it.id}')" class="text-blue-500 underline cursor-pointer">Lihat</button>`
+                    ? `<button onclick="openDetail('${itemId}')" class="text-blue-500 underline cursor-pointer">Lihat</button>`
                     : "-"
                 }
                 </td>
                 <td class="p-2 text-center">
-                <button onclick="confirmDelete('${it.id}')" class="text-red-600">Hapus</button>
+                <button onclick="confirmDelete('${itemId}')" class="text-red-600">Hapus</button>
                 </td>
             </tr>
             `;
 
-            // Card (mobile)
             card.innerHTML += `
             <div class="bg-gray-700 p-4 rounded-lg shadow">
                 <div class="flex justify-between">
@@ -532,38 +566,44 @@
                 <div class="flex justify-between mt-3 text-sm">
                 ${
                     it.photoUrl
-                    ? `<button onclick="openDetail('${it.id}')" class="text-blue-400 underline">Bukti</button>`
+                    ? `<button onclick="openDetail('${itemId}')" class="text-blue-400 underline">Bukti</button>`
                     : "-"
                 }
-                <button onclick="confirmDelete('${it.id}')" class="text-red-500">Hapus</button>
+                <button onclick="confirmDelete('${itemId}')" class="text-red-500">Hapus</button>
                 </div>
             </div>
             `;
         });
         }
 
-        // === DETAIL TRANSAKSI MODAL ===
-        async function openDetail(id) {
-        try {
-            const res = await fetch(`${ITEMS_ENDPOINT}/${id}`, {
-            headers: { "x-username": localStorage.getItem("username") },
-            });
-            if (!res.ok) throw new Error("Gagal ambil detail");
-            const item = await res.json();
+        // === DETAIL TRANSAKSI ===
+        function openDetail(id) {
+        const key = String(id);
+        const item =
+            itemsById.get(key) ||
+            lastItemsCache.find((x) => String(x.id || x._id) === key);
 
-            let html = `
+        if (!item) {
+            showAlert("❌ Data tidak ditemukan di halaman ini.", "error");
+            return;
+        }
+
+        let html = `
             <h2 class="text-lg font-bold mb-4">Detail Transaksi</h2>
             <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
             <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || "-")}</p>
             <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || "-")}</p>
-            `;
-            if (item.photoUrl) {
-            html += `<div class="mt-4"><img src="${item.photoUrl}" alt="Bukti" class="max-h-80 mx-auto rounded-lg shadow"></div>`;
-            }
-            showModal(html);
-        } catch (err) {
-            showAlert("❌ " + err.message, "error");
+        `;
+
+        if (item.photoUrl) {
+            html += `<div class="mt-4">
+            <img src="${item.photoUrl}" alt="Bukti" class="max-h-80 mx-auto rounded-lg shadow">
+            </div>`;
+        } else {
+            html += `<p class="mt-3 text-sm text-gray-500">Tidak ada bukti foto.</p>`;
         }
+
+        showModal(html);
         }
 
         // === NOMINAL FORMAT INPUT ===
@@ -589,7 +629,8 @@
         const file = document.getElementById("fileInput").files[0];
         const statusEl = document.getElementById("uploadStatus");
         statusEl.textContent = "";
-        if (!nominal) return showAlert("Nominal wajib di isi Ruslan Kasep Marahloh!", "error");
+        if (!nominal)
+            return showAlert("Nominal wajib di isi Ruslan Kasep Marahloh!", "error");
 
         let photoUrl = null,
             publicId = null;
@@ -648,18 +689,22 @@
         }
 
         // === EXPORT EXCEL ===
-        document.getElementById("btnExportExcel").addEventListener("click", async () => {
-        if (typeof XLSX === "undefined")
-            await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+        document
+        .getElementById("btnExportExcel")
+        .addEventListener("click", async () => {
+            if (typeof XLSX === "undefined")
+            await loadScript(
+                "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+            );
 
-        const res = await fetch(ITEMS_ENDPOINT, {
+            const res = await fetch(ITEMS_ENDPOINT, {
             headers: { "x-username": localStorage.getItem("username") },
-        });
-        const { data } = await res.json();
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Transaksi");
-        XLSX.writeFile(wb, "transaksi.xlsx");
+            });
+            const { data } = await res.json();
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Transaksi");
+            XLSX.writeFile(wb, "transaksi.xlsx");
         });
 
         // === LOAD SCRIPT ===
