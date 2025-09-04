@@ -152,30 +152,39 @@ app.get("/items", (req, res) => {
       });
     }
 
-    // Filter by date range
+    // === Filter by date range ===
     if (range && range !== "all") {
-      const today = new Date();
-      items = items.filter((i) => {
-        const tgl = new Date(i.tanggal);
-        if (range === "today") {
-          return tgl.toDateString() === today.toDateString();
-        }
-        if (range === "week") {
-          const startOfWeek = new Date(today);
-          startOfWeek.setDate(today.getDate() - today.getDay());
-          startOfWeek.setHours(0, 0, 0, 0);
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(startOfWeek.getDate() + 7);
-          return tgl >= startOfWeek && tgl < endOfWeek;
-        }
-        if (range === "month") {
-          return (
-            tgl.getMonth() === today.getMonth() &&
-            tgl.getFullYear() === today.getFullYear()
-          );
-        }
-        return true;
-      });
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // normalize ke 00:00
+
+        items = items.filter((i) => {
+            const tgl = new Date(i.tanggal);
+            tgl.setHours(0, 0, 0, 0); // normalize biar sama-sama 00:00
+
+            if (range === "today") {
+            return tgl.getTime() === today.getTime();
+            }
+
+            if (range === "week") {
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay()); // minggu dimulai dari Minggu
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+            return tgl >= startOfWeek && tgl < endOfWeek;
+            }
+
+            if (range === "month") {
+            return (
+                tgl.getMonth() === today.getMonth() &&
+                tgl.getFullYear() === today.getFullYear()
+            );
+            }
+
+            return true;
+        });
     }
 
     // === SUMMARY (sebelum pagination) ===
