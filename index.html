@@ -103,15 +103,16 @@
           <!-- Table Desktop -->
           <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full border-collapse">
-              <thead class="bg-gray-100 dark:bg-gray-700">
-                <tr>
-                  <th class="p-3 text-left">Nominal</th>
-                  <th class="p-3 text-left">Keterangan</th>
-                  <th class="p-3 text-left">Tanggal</th>
-                  <th class="p-3 text-center">Bukti</th>
-                  <th class="p-3 text-center">Aksi</th>
-                </tr>
-              </thead>
+                <thead class="bg-gray-100 dark:bg-gray-700">
+                    <tr>
+                        <th class="p-3 text-left">Nominal</th>
+                        <th class="p-3 text-left">Nama</th>
+                        <th class="p-3 text-left">Keterangan</th>
+                        <th class="p-3 text-left">Tanggal</th>
+                        <th class="p-3 text-center">Bukti</th>
+                        <th class="p-3 text-center">Aksi</th>
+                    </tr>
+                </thead>
               <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
             </table>
           </div>
@@ -308,40 +309,35 @@
     // === RENDER DATA ===
     function render(items) {
       let income = 0, expense = 0;
-      items.forEach(i => { const n = Number(i.nominal) || 0; if (n > 0) income += n; else expense += n; });
-      document.getElementById('totalIncome').textContent = fmtRp(income);
-      document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
-      document.getElementById('totalBalance').textContent = fmtRp(income + expense);
-
-      const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
-      const card = document.getElementById('cardList'); card.innerHTML = '';
-
-      items.forEach(it => {
+        items.forEach(it => {
         tbody.innerHTML += `
-          <tr class="border-b">
+        <tr class="border-b">
             <td class="p-2 ${it.nominal >= 0 ? 'text-green-600' : 'text-red-600'}">${fmtRp(it.nominal)}</td>
+            <td class="p-2">${escapeHtml(it.nama || it.username || '-')}</td>
             <td class="p-2">${escapeHtml(it.keterangan || '-')}</td>
             <td class="p-2">${escapeHtml(it.tanggal || '-')}</td>
             <td class="p-2 text-center">
-              ${it.photoUrl 
-                ? `<button onclick='showDetail(${JSON.stringify(it)})' class="text-blue-500 underline">Lihat</button>` 
+            ${it.photoUrl 
+                ? `<button onclick="showDetail(this.dataset.item)" data-item='${JSON.stringify(it)}' class="text-blue-500 underline">Lihat</button>`
                 : '-'}
             </td>
             <td class="p-2 text-center"><button onclick="deleteItem(${it.id})" class="text-red-600">Hapus</button></td>
-          </tr>`;
+        </tr>`;
+        
         card.innerHTML += `
-          <div class="bg-gray-700 p-4 rounded-lg shadow">
+        <div class="bg-gray-700 p-4 rounded-lg shadow">
             <div class="flex justify-between">
-              <span>${escapeHtml(it.tanggal || '-')}</span>
-              <span class="${it.nominal >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${fmtRp(it.nominal)}</span>
+            <span>${escapeHtml(it.tanggal || '-')}</span>
+            <span class="${it.nominal >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${fmtRp(it.nominal)}</span>
             </div>
+            <p class="text-sm mt-1"><b>${escapeHtml(it.nama || it.username || '-')}</b></p>
             <p class="text-sm mt-2">${escapeHtml(it.keterangan || '-')}</p>
             <div class="flex justify-between mt-3 text-sm">
-              ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
-              <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
+            ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
+            <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
             </div>
-          </div>`;
-      });
+        </div>`;
+        });
     }
 
     // === NOMINAL FORMAT ===
@@ -436,22 +432,24 @@
       document.getElementById('globalModal').classList.remove('hidden');
     }
 
-    function showDetail(item) {
-      document.getElementById('modalContent').innerHTML = `
+    function showDetail(itemStr) {
+    const item = JSON.parse(itemStr);
+    document.getElementById('modalContent').innerHTML = `
         <h3 class="font-bold text-lg mb-2">Detail Transaksi</h3>
+        <p><b>Nama:</b> ${escapeHtml(item.nama || item.username || '-')}</p>
         <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
         <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || '-')}</p>
         <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || '-')}</p>
         <p><b>Dibuat:</b> ${escapeHtml(item.createdAt || '-')}</p>
         ${item.photoUrl ? `<p class="mt-2"><b>Foto:</b><br>
-          <a href="${item.photoUrl}" target="_blank">
+        <a href="${item.photoUrl}" target="_blank">
             <img src="${item.photoUrl}" alt="foto" class="mt-1 max-h-40 rounded" />
-          </a></p>` : ''}
-      `;
-      document.getElementById('modalActions').innerHTML = `
+        </a></p>` : ''}
+    `;
+    document.getElementById('modalActions').innerHTML = `
         <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">Tutup</button>
-      `;
-      document.getElementById('globalModal').classList.remove('hidden');
+    `;
+    document.getElementById('globalModal').classList.remove('hidden');
     }
 
     function closeModal() { document.getElementById('globalModal').classList.add('hidden'); }
@@ -465,35 +463,51 @@
 
     // === Export CSV ===
     document.getElementById('btnExportCSV').addEventListener('click', async () => {
-      try {
+    try {
         const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') }});
         const { data } = await res.json();
         if (!data || !data.length) return showAlert('Data kosong');
         const csv = [
-          ['Nominal','Keterangan','Tanggal','Photo URL','CreatedAt'].join(','),
-          ...data.map(i => [i.nominal, `"${i.keterangan}"`, i.tanggal, i.photoUrl, i.createdAt].join(','))
+        ['Nominal','Nama','Keterangan','Tanggal','Photo URL','CreatedAt'].join(','),
+        ...data.map(i => [
+            i.nominal || 0,
+            `"${i.nama || i.username || ''}"`,
+            `"${i.keterangan || ''}"`,
+            i.tanggal || '',
+            i.photoUrl || '',
+            i.createdAt || ''
+        ].join(','))
         ].join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = 'transaksi.csv'; a.click();
         URL.revokeObjectURL(url);
-      } catch (err) { showAlert('Gagal export: ' + err.message); }
+    } catch (err) { showAlert('Gagal export: ' + err.message); }
     });
 
     // === Export Excel ===
     document.getElementById('btnExportExcel').addEventListener('click', async () => {
-      try {
+    try {
         const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') }});
         const { data } = await res.json();
         if (!data || !data.length) return showAlert('Data kosong');
-        const rows = [ ['Nominal','Keterangan','Tanggal','Photo URL','CreatedAt'],
-          ...data.map(i => [i.nominal, i.keterangan, i.tanggal, i.photoUrl, i.createdAt]) ];
+        const rows = [
+        ['Nominal','Nama','Keterangan','Tanggal','Photo URL','CreatedAt'],
+        ...data.map(i => [
+            i.nominal || 0,
+            i.nama || i.username || '',
+            i.keterangan || '',
+            i.tanggal || '',
+            i.photoUrl || '',
+            i.createdAt || ''
+        ])
+        ];
         const ws = XLSX.utils.aoa_to_sheet(rows);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Transaksi');
         XLSX.writeFile(wb, 'transaksi.xlsx');
-      } catch (err) { showAlert('Gagal export: ' + err.message); }
+    } catch (err) { showAlert('Gagal export: ' + err.message); }
     });
 
     // load xlsx

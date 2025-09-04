@@ -122,12 +122,13 @@ app.get("/items", (req, res) => {
 
     // Search
     if (search) {
-        const keywords = search.toLowerCase().split(/\s+/);
+        const keywords = search.toLowerCase().split(/\s+/); // pisah per spasi
         items = items.filter(i =>
             keywords.every(kw =>
             (i.keterangan || "").toLowerCase().includes(kw) ||
             (String(i.nominal) || "").toLowerCase().includes(kw) ||
-            (i.user || "").toLowerCase().includes(kw) // biar admin bisa search by username
+            (i.nama || "").toLowerCase().includes(kw) ||
+            (i.user || "").toLowerCase().includes(kw) // biar admin bisa search nama user juga
             )
         );
     }
