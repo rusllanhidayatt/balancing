@@ -51,13 +51,6 @@
       <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <h1 class="font-bold text-lg">📊 Finance</h1>
         <div class="flex flex-wrap items-center gap-2">
-          <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
-            <option value="all">Semua</option>
-            <option value="today">Hari ini</option>
-            <option value="week">Minggu ini</option>
-            <option value="month">Bulan ini</option>
-          </select>
-          <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
           <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
           <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
         </div>
@@ -110,16 +103,35 @@
         <!-- List Transaksi -->
         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow max-w-5xl mx-auto mb-10">
 
-          <!-- Search & Sort -->
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-            <input id="searchInput" type="text" placeholder="Cari transaksi..." class="p-2 border rounded w-full md:w-1/3 dark:bg-gray-700" />
-            <select id="sortSelect" class="p-2 border rounded w-full md:w-1/4 dark:bg-gray-700">
-              <option value="date_desc">Tanggal Terbaru</option>
-              <option value="date_asc">Tanggal Lama</option>
-              <option value="nominal_desc">Nominal Terbesar</option>
-              <option value="nominal_asc">Nominal Terkecil</option>
-            </select>
-          </div>
+        <!-- Search & Filters -->
+        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+
+            <!-- Kiri: Search + Reset -->
+            <div class="flex items-center gap-2 w-full md:w-1/3">
+                <input id="searchInput" type="text" placeholder="Cari transaksi..." 
+                class="p-2 border rounded flex-1 dark:bg-gray-700" />
+                <button id="btnReset" title="Reset filter"
+                class="p-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                🔄
+                </button>
+            </div>
+
+            <!-- Tengah: Sort + Range -->
+            <div class="flex items-center gap-2 w-full md:w-2/3 justify-end">
+                <select id="sortSelect" class="p-2 border rounded dark:bg-gray-700">
+                <option value="date_desc">Tanggal Terbaru</option>
+                <option value="date_asc">Tanggal Lama</option>
+                <option value="nominal_desc">Nominal Terbesar</option>
+                <option value="nominal_asc">Nominal Terkecil</option>
+                </select>
+                <select id="filterRange" class="p-2 border rounded dark:bg-gray-700">
+                <option value="all">Semua</option>
+                <option value="today">Hari ini</option>
+                <option value="week">Minggu ini</option>
+                <option value="month">Bulan ini</option>
+                </select>
+            </div>
+        </div>
 
           <!-- Table Desktop -->
           <div class="hidden md:block overflow-x-auto">
@@ -170,44 +182,59 @@
         modalBody.innerHTML = html;
         modalContainer.classList.remove("hidden");
         }
-
         function closeModal() {
         modalContainer.classList.add("hidden");
         modalBody.innerHTML = "";
         }
 
-        function showAlert(message, onOk, onCancel) {
+        // === ALERT NOTIF (auto close) ===
+        function showAlert(message, type = "info", timeout = 3000) {
         alertMessage.textContent = message;
         alertContainer.classList.remove("hidden");
 
-        const okHandler = () => {
-            hideAlert();
-            if (onOk) onOk();
-        };
-        const cancelHandler = () => {
-            hideAlert();
-            if (onCancel) onCancel();
-        };
+        // Style
+        alertMessage.className =
+            type === "error"
+            ? "mb-4 text-red-600 dark:text-red-400"
+            : "mb-4 text-green-600 dark:text-green-400";
 
-        alertOk.onclick = okHandler;
-        alertCancel.onclick = cancelHandler;
+        // Auto close
+        setTimeout(() => hideAlert(), timeout);
+
+        // Hide confirm buttons
+        alertOk.style.display = "none";
+        alertCancel.style.display = "none";
         }
-
         function hideAlert() {
         alertContainer.classList.add("hidden");
         alertMessage.textContent = "";
-        alertOk.onclick = null;
-        alertCancel.onclick = null;
         }
 
-        // Close modal/alert on ESC + click outside
+        // === ALERT CONFIRM (khusus delete) ===
+        function showAlertConfirm(message, onOk, onCancel) {
+        alertMessage.textContent = message;
+        alertContainer.classList.remove("hidden");
+
+        alertOk.style.display = "inline-block";
+        alertCancel.style.display = "inline-block";
+
+        alertOk.onclick = () => {
+            hideAlert();
+            if (onOk) onOk();
+        };
+        alertCancel.onclick = () => {
+            hideAlert();
+            if (onCancel) onCancel();
+        };
+        }
+
+        // Close modal/alert on ESC + click luar
         document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             if (!modalContainer.classList.contains("hidden")) closeModal();
             if (!alertContainer.classList.contains("hidden")) hideAlert();
         }
         });
-
         modalContainer.addEventListener("click", (e) => {
         if (e.target === modalContainer) closeModal();
         });
@@ -227,9 +254,8 @@
         document.getElementById("btnLogin").addEventListener("click", async () => {
         const u = (document.getElementById("userInput").value || "").trim();
         const p = document.getElementById("passInput").value || "";
-        if (!u) return showAlert("Masukkan username kata Ruslan Kasep loh!");
-        if (p !== "fenisayangruslan")
-            return showAlert("Password silahkan minta ke Ruslan Kasep!");
+        if (!u) return showAlert("Masukkan username!", "error");
+        if (p !== "fenisayangruslan") return showAlert("Password salah!", "error");
         try {
             const res = await fetch(API_URL + "/login", {
             method: "POST",
@@ -243,17 +269,14 @@
             localStorage.setItem("role", data.user.role);
             showApp();
         } catch (e) {
-            showAlert(e.message);
+            showAlert(e.message, "error");
         }
         });
 
-        document
-        .getElementById("btnLogout")
-        .addEventListener("click", () => {
-            localStorage.clear();
-            location.reload();
+        document.getElementById("btnLogout").addEventListener("click", () => {
+        localStorage.clear();
+        location.reload();
         });
-
         if (localStorage.getItem("loggedIn")) showApp();
 
         // === THEME AUTO BY TIME ===
@@ -305,8 +328,7 @@
                 })
             )
             );
-
-            showAlert("✅ Data berhasil diimport!");
+            showAlert("✅ Data berhasil diimport!", "success");
             window.history.replaceState({}, document.title, window.location.pathname);
         } catch (err) {
             console.error("Import error:", err);
@@ -348,7 +370,14 @@
         const rangeVal = document.getElementById("filterRange").value;
         if (rangeVal !== "all") params.append("range", rangeVal);
 
-        // Pagination
+        // ===== Fetch summary tanpa pagination =====
+        const resSummary = await fetch(ITEMS_ENDPOINT + "?" + params.toString(), {
+            headers: { "x-username": localStorage.getItem("username") },
+        });
+        const { data: allItems } = await resSummary.json();
+        updateSummary(allItems);
+
+        // ===== Fetch list dengan pagination =====
         params.append("page", currentPage);
         params.append("limit", limit);
 
@@ -358,10 +387,22 @@
         if (res.status === 401) return location.reload();
 
         const { data: items, total } = await res.json();
-
         render(items);
         renderPagination(total);
         loadingOverlay.classList.add("hidden");
+        }
+
+        // === Update Summary ===
+        function updateSummary(items) {
+        let income = 0, expense = 0;
+        items.forEach((i) => {
+            const n = Number(i.nominal) || 0;
+            if (n > 0) income += n;
+            else expense += n;
+        });
+        document.getElementById("totalIncome").textContent = fmtRp(income);
+        document.getElementById("totalExpense").textContent = fmtRp(Math.abs(expense));
+        document.getElementById("totalBalance").textContent = fmtRp(income + expense);
         }
 
         // === Render Pagination ===
@@ -369,10 +410,9 @@
         const pagination = document.getElementById("pagination");
         pagination.innerHTML = "";
         const totalPages = Math.ceil(totalItems / limit);
-
         if (totalPages <= 1) return;
 
-        // Prev button
+        // Prev
         const prevBtn = document.createElement("button");
         prevBtn.textContent = "Prev";
         prevBtn.disabled = currentPage === 1;
@@ -389,7 +429,7 @@
         };
         pagination.appendChild(prevBtn);
 
-        // Page numbers
+        // Pages
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement("button");
             btn.textContent = i;
@@ -403,7 +443,7 @@
             pagination.appendChild(btn);
         }
 
-        // Next button
+        // Next
         const nextBtn = document.createElement("button");
         nextBtn.textContent = "Next";
         nextBtn.disabled = currentPage === totalPages;
@@ -421,7 +461,7 @@
         pagination.appendChild(nextBtn);
         }
 
-        // === Bind search with debounce ===
+        // === Debounce Search ===
         function debounce(fn, delay = 500) {
         let timeout;
         return (...args) => {
@@ -429,40 +469,33 @@
             timeout = setTimeout(() => fn(...args), delay);
         };
         }
-
         const debouncedSearch = debounce(() => {
         currentPage = 1;
         fetchAndRender();
         });
-
-        document
-        .getElementById("searchInput")
-        .addEventListener("input", debouncedSearch);
+        document.getElementById("searchInput").addEventListener("input", debouncedSearch);
 
         // === Listener filter range & sort ===
         document.getElementById("filterRange").addEventListener("change", () => {
         currentPage = 1;
         fetchAndRender();
         });
-
         document.getElementById("sortSelect").addEventListener("change", () => {
+        currentPage = 1;
+        fetchAndRender();
+        });
+
+        // === RESET FILTER ===
+        document.getElementById("btnReset").addEventListener("click", () => {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("sortSelect").value = "date_desc";
+        document.getElementById("filterRange").value = "all";
         currentPage = 1;
         fetchAndRender();
         });
 
         // === RENDER DATA ===
         function render(items) {
-        let income = 0,
-            expense = 0;
-        items.forEach((i) => {
-            const n = Number(i.nominal) || 0;
-            if (n > 0) income += n;
-            else expense += n;
-        });
-        document.getElementById("totalIncome").textContent = fmtRp(income);
-        document.getElementById("totalExpense").textContent = fmtRp(Math.abs(expense));
-        document.getElementById("totalBalance").textContent = fmtRp(income + expense);
-
         const tbody = document.getElementById("tableBody");
         tbody.innerHTML = "";
         const card = document.getElementById("cardList");
@@ -476,14 +509,14 @@
                 <td class="p-2">${escapeHtml(it.keterangan || "-")}</td>
                 <td class="p-2">${escapeHtml(it.tanggal || "-")}</td>
                 <td class="p-2 text-center">
-                    ${
-                        it.photoUrl
-                        ? `<button onclick="openDetail(${encodeURIComponent(it.id)})" class="text-blue-500 underline cursor-pointer">Lihat</button>`
-                        : "-"
-                    }
+                ${
+                    it.photoUrl
+                    ? `<button onclick="openDetail('${it.id}')" class="text-blue-500 underline cursor-pointer">Lihat</button>`
+                    : "-"
+                }
                 </td>
                 <td class="p-2 text-center">
-                <button onclick="confirmDelete(${it.id})" class="text-red-600">Hapus</button>
+                <button onclick="confirmDelete('${it.id}')" class="text-red-600">Hapus</button>
                 </td>
             </tr>
             `;
@@ -493,20 +526,16 @@
             <div class="bg-gray-700 p-4 rounded-lg shadow">
                 <div class="flex justify-between">
                 <span>${escapeHtml(it.tanggal || "-")}</span>
-                <span class="${
-                    it.nominal >= 0 ? "text-green-400" : "text-red-400"
-                } font-bold">${fmtRp(it.nominal)}</span>
+                <span class="${it.nominal >= 0 ? "text-green-400" : "text-red-400"} font-bold">${fmtRp(it.nominal)}</span>
                 </div>
                 <p class="text-sm mt-2">${escapeHtml(it.keterangan || "-")}</p>
                 <div class="flex justify-between mt-3 text-sm">
                 ${
                     it.photoUrl
-                    ? `<button onclick="openDetail(${encodeURIComponent(
-                        it.id
-                        )})" class="text-blue-400 underline">Bukti</button>`
+                    ? `<button onclick="openDetail('${it.id}')" class="text-blue-400 underline">Bukti</button>`
                     : "-"
                 }
-                <button onclick="confirmDelete(${it.id})" class="text-red-500">Hapus</button>
+                <button onclick="confirmDelete('${it.id}')" class="text-red-500">Hapus</button>
                 </div>
             </div>
             `;
@@ -531,17 +560,16 @@
             if (item.photoUrl) {
             html += `<div class="mt-4"><img src="${item.photoUrl}" alt="Bukti" class="max-h-80 mx-auto rounded-lg shadow"></div>`;
             }
-
             showModal(html);
         } catch (err) {
-            showAlert("❌ " + err.message);
+            showAlert("❌ " + err.message, "error");
         }
         }
 
         // === NOMINAL FORMAT INPUT ===
         const nominalInput = document.getElementById("fieldNominal");
         nominalInput.addEventListener("input", (e) => {
-        let raw = e.target.value.replace(/[^0-9-]/g, ""); // angka & minus
+        let raw = e.target.value.replace(/[^0-9-]/g, "");
         if (!raw || raw === "-") {
             e.target.value = raw;
             return;
@@ -561,7 +589,7 @@
         const file = document.getElementById("fileInput").files[0];
         const statusEl = document.getElementById("uploadStatus");
         statusEl.textContent = "";
-        if (!nominal) return showAlert("Nominal wajib diisi");
+        if (!nominal) return showAlert("Nominal wajib diisi", "error");
 
         let photoUrl = null,
             publicId = null;
@@ -603,14 +631,14 @@
             setTimeout(() => (statusEl.textContent = ""), 2000);
             fetchAndRender();
         } catch (err) {
-            showAlert("❌ " + err.message);
+            showAlert("❌ " + err.message, "error");
             statusEl.textContent = "";
         }
         });
 
         // === DELETE ITEM ===
         function confirmDelete(id) {
-        showAlert("Hapus transaksi ini?", async () => {
+        showAlertConfirm("Hapus transaksi ini?", async () => {
             await fetch(ITEMS_ENDPOINT + "/" + id, {
             method: "DELETE",
             headers: { "x-username": localStorage.getItem("username") },
@@ -619,61 +647,32 @@
         });
         }
 
-        // === EXPORT CSV ===
-        document.getElementById("btnExportCSV").addEventListener("click", async () => {
-        const res = await fetch(ITEMS_ENDPOINT, {
-            headers: { "x-username": localStorage.getItem("username") },
-        });
-        const { data } = await res.json();
-        if (!data || !data.length) return showAlert("Data kosong");
-
-        const headers = ["Nominal", "Keterangan", "Tanggal", "PhotoUrl"];
-        const rows = data.map((i) => [i.nominal, i.keterangan, i.tanggal, i.photoUrl || ""]);
-        const csv = [headers, ...rows]
-            .map((r) =>
-            r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-            )
-            .join("\n");
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "keuangan.csv";
-        a.click();
-        URL.revokeObjectURL(url);
-
-        showAlert("✅ CSV berhasil diexport!");
-        });
-
         // === EXPORT EXCEL ===
         document.getElementById("btnExportExcel").addEventListener("click", async () => {
         if (typeof XLSX === "undefined")
-            await loadScript(
-            "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
-            );
+            await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+
         const res = await fetch(ITEMS_ENDPOINT, {
             headers: { "x-username": localStorage.getItem("username") },
         });
         const { data } = await res.json();
-        if (!data || !data.length) return showAlert("Data kosong");
-
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Keuangan");
-        XLSX.writeFile(wb, "keuangan.xlsx");
-
-        showAlert("✅ Excel berhasil diexport!");
+        XLSX.utils.book_append_sheet(wb, ws, "Transaksi");
+        XLSX.writeFile(wb, "transaksi.xlsx");
         });
 
+        // === LOAD SCRIPT ===
         function loadScript(src) {
         return new Promise((resolve, reject) => {
             const s = document.createElement("script");
             s.src = src;
             s.onload = resolve;
             s.onerror = reject;
-            document.head.appendChild(s);
+            document.body.appendChild(s);
         });
         }
     </script>
+
   </body>
 </html>
