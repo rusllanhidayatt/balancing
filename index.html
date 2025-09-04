@@ -103,16 +103,15 @@
           <!-- Table Desktop -->
           <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full border-collapse">
-                <thead class="bg-gray-100 dark:bg-gray-700">
-                    <tr>
-                        <th class="p-3 text-left">Nominal</th>
-                        <th class="p-3 text-left">Nama</th>
-                        <th class="p-3 text-left">Keterangan</th>
-                        <th class="p-3 text-left">Tanggal</th>
-                        <th class="p-3 text-center">Bukti</th>
-                        <th class="p-3 text-center">Aksi</th>
-                    </tr>
-                </thead>
+              <thead class="bg-gray-100 dark:bg-gray-700">
+                <tr>
+                  <th class="p-3 text-left">Nominal</th>
+                  <th class="p-3 text-left">Keterangan</th>
+                  <th class="p-3 text-left">Tanggal</th>
+                  <th class="p-3 text-center">Bukti</th>
+                  <th class="p-3 text-center">Aksi</th>
+                </tr>
+              </thead>
               <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
             </table>
           </div>
@@ -127,16 +126,6 @@
       </section>
     </div>
 
-    <!-- GLOBAL MODAL -->
-    <div id="globalModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md w-full p-6 relative">
-        <div id="modalContent"></div>
-        <div id="modalActions" class="mt-4 flex justify-end gap-2"></div>
-        <button onclick="closeModal()" 
-          class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">✕</button>
-      </div>
-    </div>
-
     <script>
     const API_URL = "https://balancing-wop-production.up.railway.app";
     const UPLOAD_ENDPOINT = API_URL + "/upload";
@@ -146,21 +135,21 @@
 
     // === LOGIN ===
     document.getElementById('loginScreen').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
+        if (e.key === 'Enter') {
         e.preventDefault();
         document.getElementById('btnLogin').click();
-      }
+        }
     });
 
     document.getElementById('btnLogin').addEventListener('click', async () => {
-      const u = (document.getElementById('userInput').value || '').trim();
-      const p = document.getElementById('passInput').value || '';
-      if (!u) return showAlert('Masukkan username kata Ruslan Kasep loh!');
-      if (p !== 'fenisayangruslan') return showAlert('Password silahkan minta ke Ruslan Kasep!');
-      try {
+        const u = (document.getElementById('userInput').value || '').trim();
+        const p = document.getElementById('passInput').value || '';
+        if (!u) return alert('Masukkan username kata Ruslan Kasep loh!');
+        if (p !== 'fenisayangruslan') return alert('Password silahkan minta ke Ruslan Kasep!');
+        try {
         const res = await fetch(API_URL + '/login', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Login gagal');
@@ -168,7 +157,7 @@
         localStorage.setItem('username', data.user.username);
         localStorage.setItem('role', data.user.role);
         showApp();
-      } catch (e) { showAlert(e.message); }
+        } catch (e) { alert(e.message); }
     });
 
     document.getElementById('btnLogout').addEventListener('click', () => { localStorage.clear(); location.reload(); });
@@ -177,12 +166,12 @@
 
     // === THEME AUTO BY TIME ===
     function applyThemeByTime() {
-      const hour = new Date().getHours();
-      if (hour >= 6 && hour < 18) {
+        const hour = new Date().getHours();
+        if (hour >= 6 && hour < 18) {
         document.documentElement.classList.remove('dark');
-      } else {
+        } else {
         document.documentElement.classList.add('dark');
-      }
+        }
     }
     applyThemeByTime();
 
@@ -191,36 +180,36 @@
     function escapeHtml(s) { return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
     function showApp() {
-      loginScreen.classList.add('hidden');
-      app.classList.remove('hidden');
-      importIfNeeded().then(fetchAndRender);
+        loginScreen.classList.add('hidden');
+        app.classList.remove('hidden');
+        importIfNeeded().then(fetchAndRender);
     }
 
     // === IMPORT VIA URL PARAM ===
     async function importIfNeeded() {
-      const params = new URLSearchParams(window.location.search);
-      const data = params.get("import");
-      if (!data) return;
-      try {
+        const params = new URLSearchParams(window.location.search);
+        const data = params.get("import");
+        if (!data) return;
+        try {
         const decoded = JSON.parse(decodeURIComponent(data));
         if (!Array.isArray(decoded)) return;
 
         await Promise.all(decoded.map(item =>
-          fetch(ITEMS_ENDPOINT, {
+            fetch(ITEMS_ENDPOINT, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
-              "x-username": localStorage.getItem("username") || "imported",
+                "Content-Type": "application/json",
+                "x-username": localStorage.getItem("username") || "imported",
             },
             body: JSON.stringify(item),
-          })
+            })
         ));
 
-        showAlert("✅ Data berhasil diimport!");
+        alert("✅ Data berhasil diimport!");
         window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (err) {
+        } catch (err) {
         console.error("Import error:", err);
-      }
+        }
     }
     
     let currentPage = 1;
@@ -228,295 +217,198 @@
 
     // === Fetch with filters ===
     async function fetchAndRender() {
-      const params = new URLSearchParams();
+        const params = new URLSearchParams();
 
-      // Search
-      const keyword = document.getElementById('searchInput').value.trim();
-      if (keyword) params.append('search', keyword);
+        // Search
+        const keyword = document.getElementById('searchInput').value.trim();
+        if (keyword) params.append('search', keyword);
 
-      // Sort
-      const sortVal = document.getElementById('sortSelect').value;
-      if (sortVal === 'date_desc') { params.append('sort', 'tanggal'); params.append('order', 'desc'); }
-      if (sortVal === 'date_asc')  { params.append('sort', 'tanggal'); params.append('order', 'asc'); }
-      if (sortVal === 'nominal_desc') { params.append('sort', 'nominal'); params.append('order', 'desc'); }
-      if (sortVal === 'nominal_asc')  { params.append('sort', 'nominal'); params.append('order', 'asc'); }
+        // Sort
+        const sortVal = document.getElementById('sortSelect').value;
+        if (sortVal === 'date_desc') { params.append('sort', 'tanggal'); params.append('order', 'desc'); }
+        if (sortVal === 'date_asc')  { params.append('sort', 'tanggal'); params.append('order', 'asc'); }
+        if (sortVal === 'nominal_desc') { params.append('sort', 'nominal'); params.append('order', 'desc'); }
+        if (sortVal === 'nominal_asc')  { params.append('sort', 'nominal'); params.append('order', 'asc'); }
 
-      // Range filter
-      const rangeVal = document.getElementById('filterRange').value;
-      if (rangeVal !== 'all') params.append('range', rangeVal);
+        // Range filter
+        const rangeVal = document.getElementById('filterRange').value;
+        if (rangeVal !== 'all') params.append('range', rangeVal);
 
-      // Pagination
-      params.append('page', currentPage);
-      params.append('limit', limit);
+        // Pagination
+        params.append('page', currentPage);
+        params.append('limit', limit);
 
-      const res = await fetch(ITEMS_ENDPOINT + '?' + params.toString(), {
-        headers: { 'x-username': localStorage.getItem('username') }
-      });
-      if (res.status === 401) return location.reload();
+        const res = await fetch(ITEMS_ENDPOINT + '?' + params.toString(), {
+            headers: { 'x-username': localStorage.getItem('username') }
+        });
+        if (res.status === 401) return location.reload();
 
-      const { data: items, total } = await res.json();
+        const { data: items, total } = await res.json();
 
-      render(items);
-      renderPagination(total);
+        render(items);
+        renderPagination(total);
     }
 
     // === Render Pagination ===
     function renderPagination(totalItems) {
-      const pagination = document.getElementById('pagination');
-      pagination.innerHTML = '';
-      const totalPages = Math.ceil(totalItems / limit);
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        const totalPages = Math.ceil(totalItems / limit);
 
-      if (totalPages <= 1) return;
+        if (totalPages <= 1) return;
 
-      // Prev button
-      const prevBtn = document.createElement('button');
-      prevBtn.textContent = 'Prev';
-      prevBtn.disabled = currentPage === 1;
-      prevBtn.className = `px-3 py-1 rounded ${prevBtn.disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`;
-      prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; fetchAndRender(); } };
-      pagination.appendChild(prevBtn);
+        // Prev button
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = 'Prev';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.className = `px-3 py-1 rounded ${prevBtn.disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`;
+        prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; fetchAndRender(); } };
+        pagination.appendChild(prevBtn);
 
-      // Page numbers
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement('button');
-        btn.textContent = i;
-        btn.className = "px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300";
-        if (i === currentPage) btn.classList.add("active");
-        btn.onclick = () => { currentPage = i; fetchAndRender(); };
-        pagination.appendChild(btn);
-      }
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i;
+            btn.className = "px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300";
+            if (i === currentPage) btn.classList.add("active");
+            btn.onclick = () => { currentPage = i; fetchAndRender(); };
+            pagination.appendChild(btn);
+        }
 
-      // Next button
-      const nextBtn = document.createElement('button');
-      nextBtn.textContent = 'Next';
-      nextBtn.disabled = currentPage === totalPages;
-      nextBtn.className = `px-3 py-1 rounded ${nextBtn.disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`;
-      nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; fetchAndRender(); } };
-      pagination.appendChild(nextBtn);
+        // Next button
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Next';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.className = `px-3 py-1 rounded ${nextBtn.disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`;
+        nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; fetchAndRender(); } };
+        pagination.appendChild(nextBtn);
     }
 
     // Bind search & sort
     document.getElementById('searchInput').addEventListener('input', () => {
-      currentPage = 1;
-      fetchAndRender();
+    currentPage = 1;
+    fetchAndRender();
     });
 
     document.getElementById('sortSelect').addEventListener('change', () => {
-      currentPage = 1;
-      fetchAndRender();
+    currentPage = 1;
+    fetchAndRender();
     });
 
     // === RENDER DATA ===
     function render(items) {
-      let income = 0, expense = 0;
+        let income = 0, expense = 0;
+        items.forEach(i => { const n = Number(i.nominal) || 0; if (n > 0) income += n; else expense += n; });
+        document.getElementById('totalIncome').textContent = fmtRp(income);
+        document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
+        document.getElementById('totalBalance').textContent = fmtRp(income + expense);
+
+        const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
+        const card = document.getElementById('cardList'); card.innerHTML = '';
+
         items.forEach(it => {
         tbody.innerHTML += `
-        <tr class="border-b">
+            <tr class="border-b">
             <td class="p-2 ${it.nominal >= 0 ? 'text-green-600' : 'text-red-600'}">${fmtRp(it.nominal)}</td>
-            <td class="p-2">${escapeHtml(it.nama || it.username || '-')}</td>
             <td class="p-2">${escapeHtml(it.keterangan || '-')}</td>
             <td class="p-2">${escapeHtml(it.tanggal || '-')}</td>
-            <td class="p-2 text-center">
-            ${it.photoUrl 
-                ? `<button onclick="showDetail(this.dataset.item)" data-item='${JSON.stringify(it)}' class="text-blue-500 underline">Lihat</button>`
-                : '-'}
-            </td>
+            <td class="p-2 text-center">${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-500 underline">Lihat</a>` : '-'}</td>
             <td class="p-2 text-center"><button onclick="deleteItem(${it.id})" class="text-red-600">Hapus</button></td>
-        </tr>`;
-        
+            </tr>`;
         card.innerHTML += `
-        <div class="bg-gray-700 p-4 rounded-lg shadow">
+            <div class="bg-gray-700 p-4 rounded-lg shadow">
             <div class="flex justify-between">
-            <span>${escapeHtml(it.tanggal || '-')}</span>
-            <span class="${it.nominal >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${fmtRp(it.nominal)}</span>
+                <span>${escapeHtml(it.tanggal || '-')}</span>
+                <span class="${it.nominal >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${fmtRp(it.nominal)}</span>
             </div>
-            <p class="text-sm mt-1"><b>${escapeHtml(it.nama || it.username || '-')}</b></p>
             <p class="text-sm mt-2">${escapeHtml(it.keterangan || '-')}</p>
             <div class="flex justify-between mt-3 text-sm">
-            ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
-            <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
+                ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
+                <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
             </div>
-        </div>`;
+            </div>`;
         });
     }
 
     // === NOMINAL FORMAT ===
     const nominalInput = document.getElementById('fieldNominal');
     nominalInput.addEventListener('input', (e) => {
-      let raw = e.target.value;
-      let isNegative = raw.startsWith('-');
-      raw = raw.replace(/[^0-9]/g, '');
-      if (!raw) {
-        e.target.value = isNegative ? '-' : '';
-        return;
-      }
-      let formatted = Number(raw).toLocaleString('id-ID');
-      e.target.value = (isNegative ? '-' : '') + formatted;
+        let raw = e.target.value.replace(/[^0-9-]/g, ''); // angka & minus doang
+        if (!raw || raw === '-') {
+            e.target.value = raw; 
+            return; 
+        }
+        e.target.value = Number(raw).toLocaleString('id-ID');
     });
 
     // === FORM SUBMIT ===
     document.getElementById('itemForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nominalRaw = nominalInput.value.replace(/\./g,'').replace(/,/g,'');
-      const nominal = parseInt(nominalRaw) || 0;
-      const ket = document.getElementById('fieldKeterangan').value.trim();
-      const tanggal = document.getElementById('fieldTanggal').value;
-      const file = document.getElementById('fileInput').files[0];
+        e.preventDefault();
+        const nominalRaw = nominalInput.value.replace(/\./g, '').replace(/,/g, '');
+        const nominal = Number(nominalRaw);
+        const keterangan = document.getElementById('fieldKeterangan').value.trim();
+        const tanggal = document.getElementById('fieldTanggal').value || new Date().toISOString().split('T')[0];
+        const file = document.getElementById('fileInput').files[0];
+        const statusEl = document.getElementById('uploadStatus'); statusEl.textContent = '';
+        if (!nominal) return alert('Nominal wajib diisi');
 
-      if (!nominal) return showAlert('Nominal wajib diisi Ruslan Kasep!');
-      if (!tanggal) return showAlert('Tanggal wajib diisi Ruslan Kasep!');
-
-      showLoading(true);
-      try {
-        let photoUrl = '';
+        let photoUrl = null, publicId = null;
+        try {
         if (file) {
-          const formData = new FormData();
-          formData.append('file', file);
-          const r = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
-          if (!r.ok) throw new Error('Upload gagal');
-          const d = await r.json();
-          photoUrl = d.url;
+            statusEl.textContent = 'Uploading...';
+            const fd = new FormData(); fd.append('file', file);
+            const up = await fetch(UPLOAD_ENDPOINT, { method: 'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
+            const j = await up.json(); if (!up.ok) throw new Error(j.error || 'Upload gagal');
+            photoUrl = j.link || null; publicId = j.id || null;
+            statusEl.textContent = 'Upload selesai';
         }
-
-        const res = await fetch(ITEMS_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-username': localStorage.getItem('username')
-          },
-          body: JSON.stringify({ nominal, keterangan: ket, tanggal, photoUrl })
+        const createRes = await fetch(ITEMS_ENDPOINT, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': localStorage.getItem('username') },
+            body: JSON.stringify({ nama: localStorage.getItem('username'), nominal, keterangan, tanggal, photoUrl, publicId })
         });
-        if (!res.ok) throw new Error('Gagal simpan');
-
-        document.getElementById('itemForm').reset();
-        nominalInput.value = '';
-        showAlert('✅ Data berhasil disimpan Ruslan Kasep!');
+        if (!createRes.ok) throw new Error(await createRes.text());
+        document.getElementById('itemForm').reset(); nominalInput.value = '';
+        statusEl.textContent = 'Transaksi tersimpan'; setTimeout(() => statusEl.textContent = '', 2000);
         fetchAndRender();
-      } catch (err) {
-        showAlert('Gagal: ' + err.message);
-      } finally { showLoading(false); }
+        } catch (err) { alert('Gagal: ' + err.message); statusEl.textContent = ''; }
     });
 
     // === DELETE ===
     async function deleteItem(id) {
-      showConfirm('Apakah Anda yakin ingin menghapus data ini Ruslan Kasep?', async () => {
-        try {
-          const res = await fetch(ITEMS_ENDPOINT + '/' + id, {
-            method: 'DELETE',
-            headers: { 'x-username': localStorage.getItem('username') }
-          });
-          if (!res.ok) throw new Error('Gagal hapus');
-          showAlert('✅ Data berhasil dihapus Ruslan Kasep!');
-          fetchAndRender();
-        } catch (err) {
-          showAlert('Error: ' + err.message);
-        }
-      });
+        if (!confirm('Hapus transaksi?')) return;
+        await fetch(ITEMS_ENDPOINT + '/' + id, { method: 'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
+        fetchAndRender();
     }
 
-    // === MODAL FUNCS ===
-    function showAlert(msg) {
-      document.getElementById('modalContent').innerHTML = `<p>${msg}</p>`;
-      document.getElementById('modalActions').innerHTML = `
-        <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
-      `;
-      document.getElementById('globalModal').classList.remove('hidden');
-    }
-
-    function showConfirm(msg, onYes) {
-      document.getElementById('modalContent').innerHTML = `<p>${msg}</p>`;
-      document.getElementById('modalActions').innerHTML = `
-        <button onclick="closeModal()" class="bg-gray-400 text-white px-4 py-2 rounded">No</button>
-        <button onclick="closeModal(); (${onYes.toString()})();" class="bg-red-600 text-white px-4 py-2 rounded">Yes</button>
-      `;
-      document.getElementById('globalModal').classList.remove('hidden');
-    }
-
-    function showDetail(itemStr) {
-    const item = JSON.parse(itemStr);
-    document.getElementById('modalContent').innerHTML = `
-        <h3 class="font-bold text-lg mb-2">Detail Transaksi</h3>
-        <p><b>Nama:</b> ${escapeHtml(item.nama || item.username || '-')}</p>
-        <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
-        <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || '-')}</p>
-        <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || '-')}</p>
-        <p><b>Dibuat:</b> ${escapeHtml(item.createdAt || '-')}</p>
-        ${item.photoUrl ? `<p class="mt-2"><b>Foto:</b><br>
-        <a href="${item.photoUrl}" target="_blank">
-            <img src="${item.photoUrl}" alt="foto" class="mt-1 max-h-40 rounded" />
-        </a></p>` : ''}
-    `;
-    document.getElementById('modalActions').innerHTML = `
-        <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">Tutup</button>
-    `;
-    document.getElementById('globalModal').classList.remove('hidden');
-    }
-
-    function closeModal() { document.getElementById('globalModal').classList.add('hidden'); }
-
-    // close modal jika klik luar
-    document.getElementById('globalModal').addEventListener('click', (e) => {
-      if (e.target.id === 'globalModal') closeModal();
-    });
-
-    function showLoading(b) { document.getElementById('loadingOverlay').classList.toggle('hidden', !b); }
-
-    // === Export CSV ===
+    // === EXPORT ===
     document.getElementById('btnExportCSV').addEventListener('click', async () => {
-    try {
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') }});
+        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
         const { data } = await res.json();
-        if (!data || !data.length) return showAlert('Data kosong');
-        const csv = [
-        ['Nominal','Nama','Keterangan','Tanggal','Photo URL','CreatedAt'].join(','),
-        ...data.map(i => [
-            i.nominal || 0,
-            `"${i.nama || i.username || ''}"`,
-            `"${i.keterangan || ''}"`,
-            i.tanggal || '',
-            i.photoUrl || '',
-            i.createdAt || ''
-        ].join(','))
-        ].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        if (!data || !data.length) return alert('Data kosong');
+
+        const headers = ['Nominal','Keterangan','Tanggal','PhotoUrl'];
+        const rows = data.map(i => [i.nominal,i.keterangan,i.tanggal,i.photoUrl||'']);
+        const csv = [headers, ...rows].map(r => r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv],{type:'text/csv'});
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'transaksi.csv'; a.click();
+        const a=document.createElement('a');
+        a.href=url; a.download='keuangan.csv'; a.click();
         URL.revokeObjectURL(url);
-    } catch (err) { showAlert('Gagal export: ' + err.message); }
     });
 
-    // === Export Excel ===
     document.getElementById('btnExportExcel').addEventListener('click', async () => {
-    try {
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') }});
+        if (typeof XLSX === 'undefined') await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
         const { data } = await res.json();
-        if (!data || !data.length) return showAlert('Data kosong');
-        const rows = [
-        ['Nominal','Nama','Keterangan','Tanggal','Photo URL','CreatedAt'],
-        ...data.map(i => [
-            i.nominal || 0,
-            i.nama || i.username || '',
-            i.keterangan || '',
-            i.tanggal || '',
-            i.photoUrl || '',
-            i.createdAt || ''
-        ])
-        ];
-        const ws = XLSX.utils.aoa_to_sheet(rows);
+        if (!data || !data.length) return alert('Data kosong');
+
+        const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Transaksi');
-        XLSX.writeFile(wb, 'transaksi.xlsx');
-    } catch (err) { showAlert('Gagal export: ' + err.message); }
+        XLSX.utils.book_append_sheet(wb, ws, 'Keuangan');
+        XLSX.writeFile(wb, 'keuangan.xlsx');
     });
 
-    // load xlsx
-    (function(){
-      const s=document.createElement('script');
-      s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-      document.body.appendChild(s);
-    })();
-
+    function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
     </script>
   </body>
 </html>
