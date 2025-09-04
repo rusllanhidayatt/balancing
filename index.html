@@ -590,6 +590,7 @@
 
         let html = `
             <h2 class="text-lg font-bold mb-4">Detail Transaksi</h2>
+            <p><b>Nama:</b> ${escapeHtml(item.nama || "-")}</p>
             <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
             <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || "-")}</p>
             <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || "-")}</p>
