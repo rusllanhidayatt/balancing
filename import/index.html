@@ -41,15 +41,9 @@
   }
 
   function normalizeRecord(record) {
-    let username = findValue(record, FIELD_MAP.username, null);
-    const nama = findValue(record, ["nama", "Nama"], null);
-
-    if (!username && nama) {
-      username = nama; // fallback: pakai nama jadi username
-    }
-
+    const username = String(findValue(record, FIELD_MAP.username, "admin"));
     return {
-      username: String(username || "admin"),
+      username,
       nominal: Number(findValue(record, FIELD_MAP.nominal, 0)) || 0,
       keterangan: String(findValue(record, FIELD_MAP.keterangan, "")),
       tanggal: String(findValue(record, FIELD_MAP.tanggal, new Date().toISOString().split("T")[0])).slice(0, 10),
