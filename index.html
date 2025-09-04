@@ -84,8 +84,9 @@
               class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
             <input id="fieldKeterangan" type="text" placeholder="Keterangan"
               class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input id="fieldTanggal" type="date" placeholder="Tanggal"
-              class="w-full h-11 px-3 rounded bg-gray-700 text-white" />
+            <input id="fieldTanggal" type="text" placeholder="Tanggal"
+            class="w-full h-11 px-3 rounded bg-gray-700 text-white"
+            onfocus="this.type='date'" onblur="if(!this.value) this.type='text'" />
             <input id="fileInput" type="file" accept="image/*"
               class="md:col-span-2 w-full h-11 text-sm text-gray-300
                      file:mr-4 file:py-2 file:px-4
