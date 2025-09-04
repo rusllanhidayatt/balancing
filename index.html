@@ -215,6 +215,7 @@
     let currentPage = 1;
     const limit = 10;
 
+    // === Fetch with filters ===
     async function fetchAndRender() {
         const params = new URLSearchParams();
 
@@ -228,6 +229,10 @@
         if (sortVal === 'date_asc')  { params.append('sort', 'tanggal'); params.append('order', 'asc'); }
         if (sortVal === 'nominal_desc') { params.append('sort', 'nominal'); params.append('order', 'desc'); }
         if (sortVal === 'nominal_asc')  { params.append('sort', 'nominal'); params.append('order', 'asc'); }
+
+        // Range filter
+        const rangeVal = document.getElementById('filterRange').value;
+        if (rangeVal !== 'all') params.append('range', rangeVal);
 
         // Pagination
         params.append('page', currentPage);
@@ -264,7 +269,8 @@
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement('button');
             btn.textContent = i;
-            btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-blue-700 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300'}`;
+            btn.className = "px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300";
+            if (i === currentPage) btn.classList.add("active");
             btn.onclick = () => { currentPage = i; fetchAndRender(); };
             pagination.appendChild(btn);
         }

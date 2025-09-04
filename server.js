@@ -120,16 +120,19 @@ app.get("/items", (req, res) => {
       items = items.filter(i => i.user === user.username);
     }
 
-    const { search, sort, order, page, limit } = req.query;
+    const { search, sort, order, page, limit, range } = req.query;
 
     // Search
     if (search) {
-      const s = search.toLowerCase();
-      items = items.filter(i =>
-        (i.keterangan || "").toLowerCase().includes(s) ||
-        (String(i.nominal) || "").toLowerCase().includes(s) ||
-        (i.nama || "").toLowerCase().includes(s)
-      );
+        const keywords = search.toLowerCase().split(/\s+/); // pisah per spasi
+        items = items.filter(i =>
+            keywords.every(kw =>
+            (i.keterangan || "").toLowerCase().includes(kw) ||
+            (String(i.nominal) || "").toLowerCase().includes(kw) ||
+            (i.nama || "").toLowerCase().includes(kw) ||
+            (i.user || "").toLowerCase().includes(kw) // biar admin bisa search nama user juga
+            )
+        );
     }
 
     // Sort
@@ -142,16 +145,60 @@ app.get("/items", (req, res) => {
           valB = new Date(valB);
         }
         if (typeof valA === "string") {
-        return order === "desc" ? valB.localeCompare(valA) : valA.localeCompare(valB);
+          return order === "desc" ? valB.localeCompare(valA) : valA.localeCompare(valB);
         } else {
-        return order === "desc" ? (valB - valA) : (valA - valB);
+          return order === "desc" ? (valB - valA) : (valA - valB);
         }
       });
     }
 
-    const total = items.length;
+    // Filter by date range
+    if (range && range !== "all") {
+      const today = new Date();
+      items = items.filter((i) => {
+        const tgl = new Date(i.tanggal);
+        if (range === "today") {
+          return tgl.toDateString() === today.toDateString();
+        }
+        if (range === "week") {
+          const startOfWeek = new Date(today);
+          startOfWeek.setDate(today.getDate() - today.getDay());
+          startOfWeek.setHours(0, 0, 0, 0);
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 7);
+          return tgl >= startOfWeek && tgl < endOfWeek;
+        }
+        if (range === "month") {
+          return (
+            tgl.getMonth() === today.getMonth() &&
+            tgl.getFullYear() === today.getFullYear()
+          );
+        }
+        return true;
+      });
+    }
 
-    // Pagination
+    // === SUMMARY (sebelum pagination) ===
+    const total = items.length;
+    const totalNominal = items.reduce((sum, i) => sum + i.nominal, 0);
+
+    let breakdown = null;
+    if (user.role === "admin") {
+    breakdown = {};
+    items.forEach(i => {
+        if (!breakdown[i.user]) breakdown[i.user] = { totalItems: 0, totalNominal: 0 };
+        breakdown[i.user].totalItems++;
+        breakdown[i.user].totalNominal += i.nominal;
+    });
+    }
+
+    const summary = {
+    totalItems: total,
+    totalNominal,
+    breakdown, // null kalau user biasa
+    };
+
+    // === Pagination ===
     let paginated = items;
     if (page && limit) {
       const p = parseInt(page);
@@ -160,7 +207,7 @@ app.get("/items", (req, res) => {
       paginated = items.slice(start, start + l);
     }
 
-    res.json({ data: paginated, total });
+    res.json({ data: paginated, total, summary });
   } catch (err) {
     console.error("Read items error:", err);
     res.status(500).json({ error: "Failed to read items" });
