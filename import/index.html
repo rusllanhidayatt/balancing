@@ -24,7 +24,6 @@
 
   const FIELD_MAP = {
     username: ["username", "Username", "user", "User"],
-    nama: ["nama", "Nama"],
     nominal: ["nominal", "Nominal", "jumlah", "Jumlah"],
     keterangan: ["keterangan", "Keterangan"],
     tanggal: ["tanggal", "Tanggal", "date", "Date"],
@@ -42,10 +41,15 @@
   }
 
   function normalizeRecord(record) {
-    const username = String(findValue(record, FIELD_MAP.username, "admin"));
+    let username = findValue(record, FIELD_MAP.username, null);
+    const nama = findValue(record, ["nama", "Nama"], null);
+
+    if (!username && nama) {
+      username = nama; // fallback: pakai nama jadi username
+    }
+
     return {
-      username,
-      nama: String(findValue(record, FIELD_MAP.nama, username)), // fallback ke username
+      username: String(username || "admin"),
       nominal: Number(findValue(record, FIELD_MAP.nominal, 0)) || 0,
       keterangan: String(findValue(record, FIELD_MAP.keterangan, "")),
       tanggal: String(findValue(record, FIELD_MAP.tanggal, new Date().toISOString().split("T")[0])).slice(0, 10),
@@ -95,7 +99,6 @@
           "x-username": normalized.username
         },
         body: JSON.stringify({
-          nama: normalized.nama,
           nominal: normalized.nominal,
           keterangan: normalized.keterangan,
           tanggal: normalized.tanggal,
@@ -106,10 +109,10 @@
 
       if (res.ok) return "inserted";
       const errText = await res.text();
-      document.getElementById("status").textContent += `\n❌ ${normalized.username}/${normalized.nama}: ${errText}`;
+      document.getElementById("status").textContent += `\n❌ ${normalized.username}: ${errText}`;
       return "failed";
     } catch (err) {
-      document.getElementById("status").textContent += `\n❌ ${normalized.username}/${normalized.nama}: ${err.message}`;
+      document.getElementById("status").textContent += `\n❌ ${normalized.username}: ${err.message}`;
       return "failed";
     }
   }

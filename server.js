@@ -78,18 +78,16 @@ app.post("/items", (req, res) => {
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
     const items = readData();
-    const { nama, nominal, keterangan, tanggal, photoUrl, publicId } = req.body || {};
+    const { nominal, keterangan, tanggal, photoUrl, publicId } = req.body || {};
 
-    // simple validation & normalization
     const parsedNominal = Number(nominal);
-    if (!nama || Number.isNaN(parsedNominal)) {
-      return res.status(400).json({ error: "Nama & nominal wajib diisi (nominal harus angka)" });
+    if (Number.isNaN(parsedNominal)) {
+      return res.status(400).json({ error: "Nominal wajib diisi dan harus angka" });
     }
 
     const newItem = {
       id: Date.now(),
-      user: user.username,
-      nama: String(nama),
+      user: user.username, // pake username sbg identitas pemilik
       nominal: parsedNominal,
       keterangan: keterangan ? String(keterangan) : "",
       tanggal: tanggal ? String(tanggal) : new Date().toISOString().split("T")[0],
@@ -124,13 +122,12 @@ app.get("/items", (req, res) => {
 
     // Search
     if (search) {
-        const keywords = search.toLowerCase().split(/\s+/); // pisah per spasi
+        const keywords = search.toLowerCase().split(/\s+/);
         items = items.filter(i =>
             keywords.every(kw =>
             (i.keterangan || "").toLowerCase().includes(kw) ||
             (String(i.nominal) || "").toLowerCase().includes(kw) ||
-            (i.nama || "").toLowerCase().includes(kw) ||
-            (i.user || "").toLowerCase().includes(kw) // biar admin bisa search nama user juga
+            (i.user || "").toLowerCase().includes(kw) // biar admin bisa search by username
             )
         );
     }
