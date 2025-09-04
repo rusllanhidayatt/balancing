@@ -84,10 +84,13 @@
               class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
             <input id="fieldKeterangan" type="text" placeholder="Keterangan"
               class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input id="fieldTanggal" type="text" placeholder="Tanggal"
-            class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400"
-            onfocus="this.type='date'; this.showPicker && this.showPicker();" 
-            onblur="if(!this.value) this.type='text'" />
+            <div class="relative">
+            <input id="fieldTanggal" type="date"
+                class="peer w-full h-11 px-3 rounded bg-gray-700 text-white" />
+            <span class="absolute left-3 top-2.5 text-gray-400 peer-placeholder-shown:block hidden">
+                Tanggal
+            </span>
+            </div>
             <input id="fileInput" type="file" accept="image/*"
               class="md:col-span-2 w-full h-11 text-sm text-gray-300
                      file:mr-4 file:py-2 file:px-4
