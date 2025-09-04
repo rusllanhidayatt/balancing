@@ -392,7 +392,7 @@
       document.getElementById('modalActions').innerHTML = `
         <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
       `;
-      document.getElementById('globalModal').classList.remove('hidden');
+      openModal();
     }
 
     function showConfirm(msg, onYes) {
@@ -401,7 +401,7 @@
         <button onclick="closeModal()" class="bg-gray-400 text-white px-4 py-2 rounded">No</button>
         <button onclick="closeModal(); (${onYes.toString()})();" class="bg-red-600 text-white px-4 py-2 rounded">Yes</button>
       `;
-      document.getElementById('globalModal').classList.remove('hidden');
+      openModal();
     }
 
     function showDetail(item) {
@@ -420,14 +420,39 @@
       document.getElementById('modalActions').innerHTML = `
         <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">Tutup</button>
       `;
-      document.getElementById('globalModal').classList.remove('hidden');
+      openModal();
     }
 
-    function closeModal() { document.getElementById('globalModal').classList.add('hidden'); }
+    function openModal() {
+      const modal = document.getElementById('globalModal');
+      const box = modal.querySelector('.bg-white');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.add('show');
+        box.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('globalModal');
+      const box = modal.querySelector('.bg-white');
+      modal.classList.remove('show');
+      box.classList.remove('scale-100', 'opacity-100');
+      modal.addEventListener('transitionend', () => {
+        modal.classList.add('hidden');
+      }, { once: true });
+    }
 
     // close modal jika klik luar
     document.getElementById('globalModal').addEventListener('click', (e) => {
       if (e.target.id === 'globalModal') closeModal();
+    });
+
+    // Tutup modal pakai ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === "Escape") {
+        closeModal();
+      }
     });
 
     function showLoading(b) { document.getElementById('loadingOverlay').classList.toggle('hidden', !b); }
