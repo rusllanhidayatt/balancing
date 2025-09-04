@@ -14,6 +14,27 @@
       <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
     </div>
 
+    <!-- MODAL BASE -->
+    <div id="modalContainer" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div id="modalContent" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-lg w-full p-6 relative">
+        <button id="modalClose" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✖</button>
+        <div id="modalBody" class="text-sm text-gray-800 dark:text-gray-200">
+          <!-- Konten detail transaksi akan dimasukkan via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERT BASE -->
+    <div id="alertContainer" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-80 p-5 text-center">
+        <p id="alertMessage" class="mb-4 text-gray-800 dark:text-gray-200">Pesan alert</p>
+        <div class="flex justify-center gap-3">
+          <button id="alertOk" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">OK</button>
+          <button id="alertCancel" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500">Batal</button>
+        </div>
+      </div>
+    </div>
+
     <!-- LOGIN SCREEN -->
     <main id="loginScreen" class="min-h-screen flex items-center justify-center">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 w-full max-w-md">
@@ -127,119 +148,212 @@
     </div>
 
     <script>
-    const API_URL = "https://balancing-wop-production.up.railway.app";
-    const UPLOAD_ENDPOINT = API_URL + "/upload";
-    const ITEMS_ENDPOINT = API_URL + "/items";
+        const API_URL = "https://balancing-wop-production.up.railway.app";
+        const UPLOAD_ENDPOINT = API_URL + "/upload";
+        const ITEMS_ENDPOINT = API_URL + "/items";
 
-    const app = document.getElementById('app');
+        const app = document.getElementById("app");
+        const loadingOverlay = document.getElementById("loadingOverlay");
 
-    // === LOGIN ===
-    document.getElementById('loginScreen').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('btnLogin').click();
+        // === MODAL / ALERT SYSTEM ===
+        const modalContainer = document.getElementById("modalContainer");
+        const modalContent = document.getElementById("modalContent");
+        const modalBody = document.getElementById("modalBody");
+        const modalClose = document.getElementById("modalClose");
+
+        const alertContainer = document.getElementById("alertContainer");
+        const alertMessage = document.getElementById("alertMessage");
+        const alertOk = document.getElementById("alertOk");
+        const alertCancel = document.getElementById("alertCancel");
+
+        function showModal(html) {
+        modalBody.innerHTML = html;
+        modalContainer.classList.remove("hidden");
         }
-    });
 
-    document.getElementById('btnLogin').addEventListener('click', async () => {
-        const u = (document.getElementById('userInput').value || '').trim();
-        const p = document.getElementById('passInput').value || '';
-        if (!u) return alert('Masukkan username kata Ruslan Kasep loh!');
-        if (p !== 'fenisayangruslan') return alert('Password silahkan minta ke Ruslan Kasep!');
-        try {
-        const res = await fetch(API_URL + '/login', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: u })
+        function closeModal() {
+        modalContainer.classList.add("hidden");
+        modalBody.innerHTML = "";
+        }
+
+        function showAlert(message, onOk, onCancel) {
+        alertMessage.textContent = message;
+        alertContainer.classList.remove("hidden");
+
+        const okHandler = () => {
+            hideAlert();
+            if (onOk) onOk();
+        };
+        const cancelHandler = () => {
+            hideAlert();
+            if (onCancel) onCancel();
+        };
+
+        alertOk.onclick = okHandler;
+        alertCancel.onclick = cancelHandler;
+        }
+
+        function hideAlert() {
+        alertContainer.classList.add("hidden");
+        alertMessage.textContent = "";
+        alertOk.onclick = null;
+        alertCancel.onclick = null;
+        }
+
+        // Close modal/alert on ESC + click outside
+        document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            if (!modalContainer.classList.contains("hidden")) closeModal();
+            if (!alertContainer.classList.contains("hidden")) hideAlert();
+        }
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Login gagal');
-        localStorage.setItem('loggedIn', 'true');
-        localStorage.setItem('username', data.user.username);
-        localStorage.setItem('role', data.user.role);
-        showApp();
-        } catch (e) { alert(e.message); }
-    });
 
-    document.getElementById('btnLogout').addEventListener('click', () => { localStorage.clear(); location.reload(); });
+        modalContainer.addEventListener("click", (e) => {
+        if (e.target === modalContainer) closeModal();
+        });
+        alertContainer.addEventListener("click", (e) => {
+        if (e.target === alertContainer) hideAlert();
+        });
+        modalClose.addEventListener("click", closeModal);
 
-    if (localStorage.getItem('loggedIn')) showApp();
+        // === LOGIN ===
+        document.getElementById("loginScreen").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            document.getElementById("btnLogin").click();
+        }
+        });
 
-    // === THEME AUTO BY TIME ===
-    function applyThemeByTime() {
+        document.getElementById("btnLogin").addEventListener("click", async () => {
+        const u = (document.getElementById("userInput").value || "").trim();
+        const p = document.getElementById("passInput").value || "";
+        if (!u) return showAlert("Masukkan username kata Ruslan Kasep loh!");
+        if (p !== "fenisayangruslan")
+            return showAlert("Password silahkan minta ke Ruslan Kasep!");
+        try {
+            const res = await fetch(API_URL + "/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: u }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Login gagal");
+            localStorage.setItem("loggedIn", "true");
+            localStorage.setItem("username", data.user.username);
+            localStorage.setItem("role", data.user.role);
+            showApp();
+        } catch (e) {
+            showAlert(e.message);
+        }
+        });
+
+        document
+        .getElementById("btnLogout")
+        .addEventListener("click", () => {
+            localStorage.clear();
+            location.reload();
+        });
+
+        if (localStorage.getItem("loggedIn")) showApp();
+
+        // === THEME AUTO BY TIME ===
+        function applyThemeByTime() {
         const hour = new Date().getHours();
         if (hour >= 6 && hour < 18) {
-        document.documentElement.classList.remove('dark');
+            document.documentElement.classList.remove("dark");
         } else {
-        document.documentElement.classList.add('dark');
+            document.documentElement.classList.add("dark");
         }
-    }
-    applyThemeByTime();
+        }
+        applyThemeByTime();
 
-    // === HELPERS ===
-    function fmtRp(num) { return 'Rp ' + Number(num).toLocaleString('id-ID'); }
-    function escapeHtml(s) { return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+        // === HELPERS ===
+        function fmtRp(num) {
+        return "Rp " + Number(num).toLocaleString("id-ID");
+        }
+        function escapeHtml(s) {
+        return String(s || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+        }
 
-    function showApp() {
-        loginScreen.classList.add('hidden');
-        app.classList.remove('hidden');
+        function showApp() {
+        loginScreen.classList.add("hidden");
+        app.classList.remove("hidden");
         importIfNeeded().then(fetchAndRender);
-    }
+        }
 
-    // === IMPORT VIA URL PARAM ===
-    async function importIfNeeded() {
+        // === IMPORT VIA URL PARAM ===
+        async function importIfNeeded() {
         const params = new URLSearchParams(window.location.search);
         const data = params.get("import");
         if (!data) return;
         try {
-        const decoded = JSON.parse(decodeURIComponent(data));
-        if (!Array.isArray(decoded)) return;
+            const decoded = JSON.parse(decodeURIComponent(data));
+            if (!Array.isArray(decoded)) return;
 
-        await Promise.all(decoded.map(item =>
-            fetch(ITEMS_ENDPOINT, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-username": localStorage.getItem("username") || "imported",
-            },
-            body: JSON.stringify(item),
-            })
-        ));
+            await Promise.all(
+            decoded.map((item) =>
+                fetch(ITEMS_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-username": localStorage.getItem("username") || "imported",
+                },
+                body: JSON.stringify(item),
+                })
+            )
+            );
 
-        alert("✅ Data berhasil diimport!");
-        window.history.replaceState({}, document.title, window.location.pathname);
+            showAlert("✅ Data berhasil diimport!");
+            window.history.replaceState({}, document.title, window.location.pathname);
         } catch (err) {
-        console.error("Import error:", err);
+            console.error("Import error:", err);
         }
-    }
-    
-    let currentPage = 1;
-    const limit = 10;
+        }
 
-    // === Fetch with filters ===
-    async function fetchAndRender() {
+        let currentPage = 1;
+        const limit = 10;
+
+        // === Fetch with filters ===
+        async function fetchAndRender() {
+        loadingOverlay.classList.remove("hidden");
         const params = new URLSearchParams();
 
         // Search
-        const keyword = document.getElementById('searchInput').value.trim();
-        if (keyword) params.append('search', keyword);
+        const keyword = document.getElementById("searchInput").value.trim();
+        if (keyword) params.append("search", keyword);
 
         // Sort
-        const sortVal = document.getElementById('sortSelect').value;
-        if (sortVal === 'date_desc') { params.append('sort', 'tanggal'); params.append('order', 'desc'); }
-        if (sortVal === 'date_asc')  { params.append('sort', 'tanggal'); params.append('order', 'asc'); }
-        if (sortVal === 'nominal_desc') { params.append('sort', 'nominal'); params.append('order', 'desc'); }
-        if (sortVal === 'nominal_asc')  { params.append('sort', 'nominal'); params.append('order', 'asc'); }
+        const sortVal = document.getElementById("sortSelect").value;
+        if (sortVal === "date_desc") {
+            params.append("sort", "tanggal");
+            params.append("order", "desc");
+        }
+        if (sortVal === "date_asc") {
+            params.append("sort", "tanggal");
+            params.append("order", "asc");
+        }
+        if (sortVal === "nominal_desc") {
+            params.append("sort", "nominal");
+            params.append("order", "desc");
+        }
+        if (sortVal === "nominal_asc") {
+            params.append("sort", "nominal");
+            params.append("order", "asc");
+        }
 
         // Range filter
-        const rangeVal = document.getElementById('filterRange').value;
-        if (rangeVal !== 'all') params.append('range', rangeVal);
+        const rangeVal = document.getElementById("filterRange").value;
+        if (rangeVal !== "all") params.append("range", rangeVal);
 
         // Pagination
-        params.append('page', currentPage);
-        params.append('limit', limit);
+        params.append("page", currentPage);
+        params.append("limit", limit);
 
-        const res = await fetch(ITEMS_ENDPOINT + '?' + params.toString(), {
-            headers: { 'x-username': localStorage.getItem('username') }
+        const res = await fetch(ITEMS_ENDPOINT + "?" + params.toString(), {
+            headers: { "x-username": localStorage.getItem("username") },
         });
         if (res.status === 401) return location.reload();
 
@@ -247,168 +361,319 @@
 
         render(items);
         renderPagination(total);
-    }
+        loadingOverlay.classList.add("hidden");
+        }
 
-    // === Render Pagination ===
-    function renderPagination(totalItems) {
-        const pagination = document.getElementById('pagination');
-        pagination.innerHTML = '';
+        // === Render Pagination ===
+        function renderPagination(totalItems) {
+        const pagination = document.getElementById("pagination");
+        pagination.innerHTML = "";
         const totalPages = Math.ceil(totalItems / limit);
 
         if (totalPages <= 1) return;
 
         // Prev button
-        const prevBtn = document.createElement('button');
-        prevBtn.textContent = 'Prev';
+        const prevBtn = document.createElement("button");
+        prevBtn.textContent = "Prev";
         prevBtn.disabled = currentPage === 1;
-        prevBtn.className = `px-3 py-1 rounded ${prevBtn.disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`;
-        prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; fetchAndRender(); } };
+        prevBtn.className = `px-3 py-1 rounded ${
+            prevBtn.disabled
+            ? "bg-gray-300 dark:bg-gray-600"
+            : "bg-blue-500 text-white hover:bg-blue-600"
+        }`;
+        prevBtn.onclick = () => {
+            if (currentPage > 1) {
+            currentPage--;
+            fetchAndRender();
+            }
+        };
         pagination.appendChild(prevBtn);
 
         // Page numbers
         for (let i = 1; i <= totalPages; i++) {
-            const btn = document.createElement('button');
+            const btn = document.createElement("button");
             btn.textContent = i;
-            btn.className = "px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300";
+            btn.className =
+            "px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300";
             if (i === currentPage) btn.classList.add("active");
-            btn.onclick = () => { currentPage = i; fetchAndRender(); };
+            btn.onclick = () => {
+            currentPage = i;
+            fetchAndRender();
+            };
             pagination.appendChild(btn);
         }
 
         // Next button
-        const nextBtn = document.createElement('button');
-        nextBtn.textContent = 'Next';
+        const nextBtn = document.createElement("button");
+        nextBtn.textContent = "Next";
         nextBtn.disabled = currentPage === totalPages;
-        nextBtn.className = `px-3 py-1 rounded ${nextBtn.disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`;
-        nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; fetchAndRender(); } };
+        nextBtn.className = `px-3 py-1 rounded ${
+            nextBtn.disabled
+            ? "bg-gray-300 dark:bg-gray-600"
+            : "bg-blue-500 text-white hover:bg-blue-600"
+        }`;
+        nextBtn.onclick = () => {
+            if (currentPage < totalPages) {
+            currentPage++;
+            fetchAndRender();
+            }
+        };
         pagination.appendChild(nextBtn);
-    }
+        }
 
-    // Bind search & sort
-    document.getElementById('searchInput').addEventListener('input', () => {
-    currentPage = 1;
-    fetchAndRender();
-    });
+        // === Bind search with debounce ===
+        function debounce(fn, delay = 500) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => fn(...args), delay);
+        };
+        }
 
-    document.getElementById('sortSelect').addEventListener('change', () => {
-    currentPage = 1;
-    fetchAndRender();
-    });
+        const debouncedSearch = debounce(() => {
+        currentPage = 1;
+        fetchAndRender();
+        });
 
-    // === RENDER DATA ===
-    function render(items) {
-        let income = 0, expense = 0;
-        items.forEach(i => { const n = Number(i.nominal) || 0; if (n > 0) income += n; else expense += n; });
-        document.getElementById('totalIncome').textContent = fmtRp(income);
-        document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
-        document.getElementById('totalBalance').textContent = fmtRp(income + expense);
+        document
+        .getElementById("searchInput")
+        .addEventListener("input", debouncedSearch);
 
-        const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
-        const card = document.getElementById('cardList'); card.innerHTML = '';
+        // === Listener filter range & sort ===
+        document.getElementById("filterRange").addEventListener("change", () => {
+        currentPage = 1;
+        fetchAndRender();
+        });
 
-        items.forEach(it => {
-        tbody.innerHTML += `
+        document.getElementById("sortSelect").addEventListener("change", () => {
+        currentPage = 1;
+        fetchAndRender();
+        });
+
+        // === RENDER DATA ===
+        function render(items) {
+        let income = 0,
+            expense = 0;
+        items.forEach((i) => {
+            const n = Number(i.nominal) || 0;
+            if (n > 0) income += n;
+            else expense += n;
+        });
+        document.getElementById("totalIncome").textContent = fmtRp(income);
+        document.getElementById("totalExpense").textContent = fmtRp(Math.abs(expense));
+        document.getElementById("totalBalance").textContent = fmtRp(income + expense);
+
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML = "";
+        const card = document.getElementById("cardList");
+        card.innerHTML = "";
+
+        items.forEach((it) => {
+            // Table row
+            tbody.innerHTML += `
             <tr class="border-b">
-            <td class="p-2 ${it.nominal >= 0 ? 'text-green-600' : 'text-red-600'}">${fmtRp(it.nominal)}</td>
-            <td class="p-2">${escapeHtml(it.keterangan || '-')}</td>
-            <td class="p-2">${escapeHtml(it.tanggal || '-')}</td>
-            <td class="p-2 text-center">${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-500 underline">Lihat</a>` : '-'}</td>
-            <td class="p-2 text-center"><button onclick="deleteItem(${it.id})" class="text-red-600">Hapus</button></td>
-            </tr>`;
-        card.innerHTML += `
+                <td class="p-2 ${it.nominal >= 0 ? "text-green-600" : "text-red-600"}">${fmtRp(it.nominal)}</td>
+                <td class="p-2">${escapeHtml(it.keterangan || "-")}</td>
+                <td class="p-2">${escapeHtml(it.tanggal || "-")}</td>
+                <td class="p-2 text-center">
+                    ${
+                        it.photoUrl
+                        ? `<button onclick="openDetail(${encodeURIComponent(it.id)})" class="text-blue-500 underline cursor-pointer">Lihat</button>`
+                        : "-"
+                    }
+                </td>
+                <td class="p-2 text-center">
+                <button onclick="confirmDelete(${it.id})" class="text-red-600">Hapus</button>
+                </td>
+            </tr>
+            `;
+
+            // Card (mobile)
+            card.innerHTML += `
             <div class="bg-gray-700 p-4 rounded-lg shadow">
-            <div class="flex justify-between">
-                <span>${escapeHtml(it.tanggal || '-')}</span>
-                <span class="${it.nominal >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${fmtRp(it.nominal)}</span>
+                <div class="flex justify-between">
+                <span>${escapeHtml(it.tanggal || "-")}</span>
+                <span class="${
+                    it.nominal >= 0 ? "text-green-400" : "text-red-400"
+                } font-bold">${fmtRp(it.nominal)}</span>
+                </div>
+                <p class="text-sm mt-2">${escapeHtml(it.keterangan || "-")}</p>
+                <div class="flex justify-between mt-3 text-sm">
+                ${
+                    it.photoUrl
+                    ? `<button onclick="openDetail(${encodeURIComponent(
+                        it.id
+                        )})" class="text-blue-400 underline">Bukti</button>`
+                    : "-"
+                }
+                <button onclick="confirmDelete(${it.id})" class="text-red-500">Hapus</button>
+                </div>
             </div>
-            <p class="text-sm mt-2">${escapeHtml(it.keterangan || '-')}</p>
-            <div class="flex justify-between mt-3 text-sm">
-                ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
-                <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
-            </div>
-            </div>`;
+            `;
         });
-    }
-
-    // === NOMINAL FORMAT ===
-    const nominalInput = document.getElementById('fieldNominal');
-    nominalInput.addEventListener('input', (e) => {
-        let raw = e.target.value.replace(/[^0-9-]/g, ''); // angka & minus doang
-        if (!raw || raw === '-') {
-            e.target.value = raw; 
-            return; 
         }
-        e.target.value = Number(raw).toLocaleString('id-ID');
-    });
 
-    // === FORM SUBMIT ===
-    document.getElementById('itemForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nominalRaw = nominalInput.value.replace(/\./g, '').replace(/,/g, '');
-        const nominal = Number(nominalRaw);
-        const keterangan = document.getElementById('fieldKeterangan').value.trim();
-        const tanggal = document.getElementById('fieldTanggal').value || new Date().toISOString().split('T')[0];
-        const file = document.getElementById('fileInput').files[0];
-        const statusEl = document.getElementById('uploadStatus'); statusEl.textContent = '';
-        if (!nominal) return alert('Nominal wajib diisi');
-
-        let photoUrl = null, publicId = null;
+        // === DETAIL TRANSAKSI MODAL ===
+        async function openDetail(id) {
         try {
-        if (file) {
-            statusEl.textContent = 'Uploading...';
-            const fd = new FormData(); fd.append('file', file);
-            const up = await fetch(UPLOAD_ENDPOINT, { method: 'POST', headers: { 'x-username': localStorage.getItem('username') }, body: fd });
-            const j = await up.json(); if (!up.ok) throw new Error(j.error || 'Upload gagal');
-            photoUrl = j.link || null; publicId = j.id || null;
-            statusEl.textContent = 'Upload selesai';
+            const res = await fetch(`${ITEMS_ENDPOINT}/${id}`, {
+            headers: { "x-username": localStorage.getItem("username") },
+            });
+            if (!res.ok) throw new Error("Gagal ambil detail");
+            const item = await res.json();
+
+            let html = `
+            <h2 class="text-lg font-bold mb-4">Detail Transaksi</h2>
+            <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
+            <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || "-")}</p>
+            <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || "-")}</p>
+            `;
+            if (item.photoUrl) {
+            html += `<div class="mt-4"><img src="${item.photoUrl}" alt="Bukti" class="max-h-80 mx-auto rounded-lg shadow"></div>`;
+            }
+
+            showModal(html);
+        } catch (err) {
+            showAlert("❌ " + err.message);
         }
-        const createRes = await fetch(ITEMS_ENDPOINT, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': localStorage.getItem('username') },
-            body: JSON.stringify({ nama: localStorage.getItem('username'), nominal, keterangan, tanggal, photoUrl, publicId })
+        }
+
+        // === NOMINAL FORMAT INPUT ===
+        const nominalInput = document.getElementById("fieldNominal");
+        nominalInput.addEventListener("input", (e) => {
+        let raw = e.target.value.replace(/[^0-9-]/g, ""); // angka & minus
+        if (!raw || raw === "-") {
+            e.target.value = raw;
+            return;
+        }
+        e.target.value = Number(raw).toLocaleString("id-ID");
         });
-        if (!createRes.ok) throw new Error(await createRes.text());
-        document.getElementById('itemForm').reset(); nominalInput.value = '';
-        statusEl.textContent = 'Transaksi tersimpan'; setTimeout(() => statusEl.textContent = '', 2000);
-        fetchAndRender();
-        } catch (err) { alert('Gagal: ' + err.message); statusEl.textContent = ''; }
-    });
 
-    // === DELETE ===
-    async function deleteItem(id) {
-        if (!confirm('Hapus transaksi?')) return;
-        await fetch(ITEMS_ENDPOINT + '/' + id, { method: 'DELETE', headers: { 'x-username': localStorage.getItem('username') } });
-        fetchAndRender();
-    }
+        // === FORM SUBMIT ===
+        document.getElementById("itemForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const nominalRaw = nominalInput.value.replace(/\./g, "").replace(/,/g, "");
+        const nominal = Number(nominalRaw);
+        const keterangan = document.getElementById("fieldKeterangan").value.trim();
+        const tanggal =
+            document.getElementById("fieldTanggal").value ||
+            new Date().toISOString().split("T")[0];
+        const file = document.getElementById("fileInput").files[0];
+        const statusEl = document.getElementById("uploadStatus");
+        statusEl.textContent = "";
+        if (!nominal) return showAlert("Nominal wajib diisi");
 
-    // === EXPORT ===
-    document.getElementById('btnExportCSV').addEventListener('click', async () => {
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
+        let photoUrl = null,
+            publicId = null;
+        try {
+            if (file) {
+            statusEl.textContent = "Uploading...";
+            const fd = new FormData();
+            fd.append("file", file);
+            const up = await fetch(UPLOAD_ENDPOINT, {
+                method: "POST",
+                headers: { "x-username": localStorage.getItem("username") },
+                body: fd,
+            });
+            const j = await up.json();
+            if (!up.ok) throw new Error(j.error || "Upload gagal");
+            photoUrl = j.link || null;
+            publicId = j.id || null;
+            statusEl.textContent = "Upload selesai";
+            }
+            const createRes = await fetch(ITEMS_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-username": localStorage.getItem("username"),
+            },
+            body: JSON.stringify({
+                nama: localStorage.getItem("username"),
+                nominal,
+                keterangan,
+                tanggal,
+                photoUrl,
+                publicId,
+            }),
+            });
+            if (!createRes.ok) throw new Error(await createRes.text());
+            document.getElementById("itemForm").reset();
+            nominalInput.value = "";
+            statusEl.textContent = "Transaksi tersimpan";
+            setTimeout(() => (statusEl.textContent = ""), 2000);
+            fetchAndRender();
+        } catch (err) {
+            showAlert("❌ " + err.message);
+            statusEl.textContent = "";
+        }
+        });
+
+        // === DELETE ITEM ===
+        function confirmDelete(id) {
+        showAlert("Hapus transaksi ini?", async () => {
+            await fetch(ITEMS_ENDPOINT + "/" + id, {
+            method: "DELETE",
+            headers: { "x-username": localStorage.getItem("username") },
+            });
+            fetchAndRender();
+        });
+        }
+
+        // === EXPORT CSV ===
+        document.getElementById("btnExportCSV").addEventListener("click", async () => {
+        const res = await fetch(ITEMS_ENDPOINT, {
+            headers: { "x-username": localStorage.getItem("username") },
+        });
         const { data } = await res.json();
-        if (!data || !data.length) return alert('Data kosong');
+        if (!data || !data.length) return showAlert("Data kosong");
 
-        const headers = ['Nominal','Keterangan','Tanggal','PhotoUrl'];
-        const rows = data.map(i => [i.nominal,i.keterangan,i.tanggal,i.photoUrl||'']);
-        const csv = [headers, ...rows].map(r => r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv],{type:'text/csv'});
+        const headers = ["Nominal", "Keterangan", "Tanggal", "PhotoUrl"];
+        const rows = data.map((i) => [i.nominal, i.keterangan, i.tanggal, i.photoUrl || ""]);
+        const csv = [headers, ...rows]
+            .map((r) =>
+            r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+            )
+            .join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        a.href=url; a.download='keuangan.csv'; a.click();
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "keuangan.csv";
+        a.click();
         URL.revokeObjectURL(url);
-    });
 
-    document.getElementById('btnExportExcel').addEventListener('click', async () => {
-        if (typeof XLSX === 'undefined') await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') } });
+        showAlert("✅ CSV berhasil diexport!");
+        });
+
+        // === EXPORT EXCEL ===
+        document.getElementById("btnExportExcel").addEventListener("click", async () => {
+        if (typeof XLSX === "undefined")
+            await loadScript(
+            "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+            );
+        const res = await fetch(ITEMS_ENDPOINT, {
+            headers: { "x-username": localStorage.getItem("username") },
+        });
         const { data } = await res.json();
-        if (!data || !data.length) return alert('Data kosong');
+        if (!data || !data.length) return showAlert("Data kosong");
 
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Keuangan');
-        XLSX.writeFile(wb, 'keuangan.xlsx');
-    });
+        XLSX.utils.book_append_sheet(wb, ws, "Keuangan");
+        XLSX.writeFile(wb, "keuangan.xlsx");
 
-    function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
+        showAlert("✅ Excel berhasil diexport!");
+        });
+
+        function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const s = document.createElement("script");
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+        });
+        }
     </script>
   </body>
 </html>
