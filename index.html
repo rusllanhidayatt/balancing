@@ -254,8 +254,8 @@
         document.getElementById("btnLogin").addEventListener("click", async () => {
         const u = (document.getElementById("userInput").value || "").trim();
         const p = document.getElementById("passInput").value || "";
-        if (!u) return showAlert("Masukkan username!", "error");
-        if (p !== "fenisayangruslan") return showAlert("Password salah!", "error");
+        if (!u) return showAlert("Masukkan username kata Ruslan Kasep!", "error");
+        if (p !== "fenisayangruslan") return showAlert("Password salah minta ke Ruslan Kasep!", "error");
         try {
             const res = await fetch(API_URL + "/login", {
             method: "POST",
@@ -589,7 +589,7 @@
         const file = document.getElementById("fileInput").files[0];
         const statusEl = document.getElementById("uploadStatus");
         statusEl.textContent = "";
-        if (!nominal) return showAlert("Nominal wajib diisi", "error");
+        if (!nominal) return showAlert("Nominal wajib di isi Ruslan Kasep Marahloh!", "error");
 
         let photoUrl = null,
             publicId = null;
