@@ -78,28 +78,37 @@ app.post("/items", (req, res) => {
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
     const items = readData();
-    const { nama, nominal, keterangan, tanggal, photoUrl, publicId } = req.body || {};
 
-    // simple validation & normalization
-    const parsedNominal = Number(nominal);
-    if (!nama || Number.isNaN(parsedNominal)) {
+    // === whitelist field yang boleh dipakai ===
+    const allowedFields = ["nama", "nominal", "keterangan", "tanggal", "photoUrl", "publicId"];
+    const data = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        data[field] = req.body[field];
+      }
+    }
+
+    // validasi
+    const parsedNominal = Number(data.nominal);
+    if (!data.nama || Number.isNaN(parsedNominal)) {
       return res.status(400).json({ error: "Nama & nominal wajib diisi (nominal harus angka)" });
     }
 
     const newItem = {
       id: Date.now(),
       user: user.username,
-      nama: String(nama),
+      nama: String(data.nama),
       nominal: parsedNominal,
-      keterangan: keterangan ? String(keterangan) : "",
-      tanggal: tanggal ? String(tanggal) : new Date().toISOString().split("T")[0],
-      photoUrl: photoUrl || null,
-      publicId: publicId || null,
+      keterangan: data.keterangan ? String(data.keterangan) : "",
+      tanggal: data.tanggal ? String(data.tanggal) : new Date().toISOString().split("T")[0],
+      photoUrl: data.photoUrl || null,
+      publicId: data.publicId || null,
       createdAt: new Date().toISOString(),
     };
 
     items.push(newItem);
     writeData(items);
+
     res.status(201).json(newItem);
   } catch (err) {
     console.error("Create item error:", err);
@@ -237,9 +246,28 @@ app.put("/items/:id", (req, res) => {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    // optional: validate fields before merging
-    items[index] = { ...items[index], ...req.body };
+    // === whitelist field yang boleh diupdate ===
+    const allowedFields = ["nama", "nominal", "keterangan", "tanggal", "photoUrl", "publicId"];
+    const updates = {};
+
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    // validasi basic kalau ada nominal
+    if (updates.nominal !== undefined) {
+      const parsedNominal = Number(updates.nominal);
+      if (Number.isNaN(parsedNominal)) {
+        return res.status(400).json({ error: "Nominal harus angka" });
+      }
+      updates.nominal = parsedNominal;
+    }
+
+    items[index] = { ...items[index], ...updates, updatedAt: new Date().toISOString() };
     writeData(items);
+
     res.json(items[index]);
   } catch (err) {
     console.error("Update item error:", err);

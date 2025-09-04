@@ -18,6 +18,7 @@
   background-color: #e5e7eb;
 }
 
+/* Modal fade + zoom */
 #globalModal {
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -25,12 +26,14 @@
 #globalModal.show {
   opacity: 1;
 }
-#globalModal .bg-white {
+#globalModal .bg-white,
+#globalModal .dark\\:bg-gray-800 {
   transform: scale(0.95);
   opacity: 0;
   transition: all 0.3s ease;
 }
-#globalModal.show .bg-white {
+#globalModal.show .bg-white,
+#globalModal.show .dark\\:bg-gray-800 {
   transform: scale(1);
   opacity: 1;
 }
