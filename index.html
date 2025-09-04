@@ -333,8 +333,11 @@
     // === NOMINAL FORMAT ===
     const nominalInput = document.getElementById('fieldNominal');
     nominalInput.addEventListener('input', (e) => {
-        let raw = e.target.value.replace(/\D/g, '');
-        if (!raw) { e.target.value = ''; return; }
+        let raw = e.target.value.replace(/[^0-9-]/g, ''); // angka & minus doang
+        if (!raw || raw === '-') {
+            e.target.value = raw; 
+            return; 
+        }
         e.target.value = Number(raw).toLocaleString('id-ID');
     });
 
