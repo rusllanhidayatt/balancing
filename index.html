@@ -1,494 +1,469 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Finance Apps</title>
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
-
-    <!-- LOADING OVERLAY -->
-    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
-    </div>
-
-    <!-- LOGIN SCREEN -->
-    <main id="loginScreen" class="min-h-screen flex items-center justify-center">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4 text-center">🔐 Masuk</h2>
-        <input id="userInput" class="w-full p-3 mb-3 rounded border dark:bg-gray-700" placeholder="username" />
-        <input id="passInput" type="password" class="w-full p-3 mb-4 rounded border dark:bg-gray-700" placeholder="password" />
-        <button id="btnLogin" class="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700">Masuk</button>
-      </div>
-    </main>
-
-    <!-- DASHBOARD -->
-    <div id="app" class="hidden">
-      <!-- Navbar -->
-      <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 class="font-bold text-lg">📊 Finance</h1>
-        <div class="flex flex-wrap items-center gap-2">
-          <select id="filterRange" class="p-2 border rounded bg-white dark:bg-gray-700">
-            <option value="all">Semua</option>
-            <option value="today">Hari ini</option>
-            <option value="week">Minggu ini</option>
-            <option value="month">Bulan ini</option>
-          </select>
-          <button id="btnExportCSV" class="px-3 py-2 bg-green-600 text-white rounded">Export CSV</button>
-          <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
-          <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
-        </div>
-      </nav>
-
-      <!-- Content -->
-      <section class="max-w-5xl mx-auto p-6">
-
-        <!-- Summary -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
-            <p class="text-sm text-gray-500">Pemasukan</p>
-            <p id="totalIncome" class="text-xl font-bold text-green-600">Rp 0</p>
-          </div>
-          <div class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
-            <p class="text-sm text-gray-500">Pengeluaran</p>
-            <p id="totalExpense" class="text-xl font-bold text-red-600">Rp 0</p>
-          </div>
-          <div class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
-            <p class="text-sm text-gray-500">Saldo</p>
-            <p id="totalBalance" class="text-xl font-bold text-blue-600">Rp 0</p>
-          </div>
-        </div>
-
-        <!-- Form Tambah Transaksi -->
-        <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg max-w-3xl mx-auto mt-6 mb-10">
-          <h2 class="text-xl font-semibold mb-4">Tambah Transaksi</h2>
-          <form id="itemForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input id="fieldNominal" type="text" inputmode="numeric"
-              placeholder="Nominal (positif/pemasukan)"
-              class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input id="fieldKeterangan" type="text" placeholder="Keterangan"
-              class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input id="fieldTanggal" type="date"
-              class="w-full h-11 px-3 rounded bg-gray-700 text-white" />
-            <input id="fileInput" type="file" accept="image/*"
-              class="md:col-span-2 w-full h-11 text-sm text-gray-300
-                     file:mr-4 file:py-2 file:px-4
-                     file:rounded-lg file:border-0
-                     file:bg-blue-600 file:text-white
-                     hover:file:bg-blue-700" />
-            <button id="submitBtn" type="submit"
-              class="md:col-span-1 w-full bg-green-600 hover:bg-green-500 py-2 rounded text-white font-semibold">
-              Simpan
-            </button>
-          </form>
-          <p id="uploadStatus" class="text-sm text-gray-400 mt-2"></p>
-        </div>
-
-        <!-- List Transaksi -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow max-w-5xl mx-auto mb-10">
-
-          <!-- Search & Sort -->
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-            <input id="searchInput" type="text" placeholder="Cari transaksi..." class="p-2 border rounded w-full md:w-1/3 dark:bg-gray-700" />
-            <select id="sortSelect" class="p-2 border rounded w-full md:w-1/4 dark:bg-gray-700">
-              <option value="date_desc">Tanggal Terbaru</option>
-              <option value="date_asc">Tanggal Lama</option>
-              <option value="nominal_desc">Nominal Terbesar</option>
-              <option value="nominal_asc">Nominal Terkecil</option>
-            </select>
-          </div>
-
-          <!-- Table Desktop -->
-          <div class="hidden md:block overflow-x-auto">
-            <table class="min-w-full border-collapse">
-              <thead class="bg-gray-100 dark:bg-gray-700">
-                <tr>
-                  <th class="p-3 text-left">Nominal</th>
-                  <th class="p-3 text-left">Keterangan</th>
-                  <th class="p-3 text-left">Tanggal</th>
-                  <th class="p-3 text-center">Bukti</th>
-                  <th class="p-3 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
-            </table>
-          </div>
-          
-          <!-- Cards Mobile -->
-          <div id="cardList" class="md:hidden space-y-3 mt-4"></div>
-
-          <!-- Pagination -->
-          <div id="pagination" class="flex justify-center mt-6 space-x-2"></div>
-        </div>
-
-      </section>
-    </div>
-
-    <!-- GLOBAL MODAL -->
-    <div id="globalModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md w-full p-6 relative">
-        <div id="modalContent"></div>
-        <div id="modalActions" class="mt-4 flex justify-end gap-2"></div>
-        <button onclick="closeModal()" 
-          class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">✕</button>
-      </div>
-    </div>
-
-    <script>
-    const API_URL = "https://balancing-wop-production.up.railway.app";
-    const UPLOAD_ENDPOINT = API_URL + "/upload";
-    const ITEMS_ENDPOINT = API_URL + "/items";
-
-    const app = document.getElementById('app');
-
-    // === LOGIN ===
-    document.getElementById('loginScreen').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('btnLogin').click();
-      }
-    });
-
-    document.getElementById('btnLogin').addEventListener('click', async () => {
-      const u = (document.getElementById('userInput').value || '').trim();
-      const p = document.getElementById('passInput').value || '';
-      if (!u) return showAlert('Masukkan username kata Ruslan Kasep loh!');
-      if (p !== 'fenisayangruslan') return showAlert('Password silahkan minta ke Ruslan Kasep!');
-      try {
-        const res = await fetch(API_URL + '/login', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Login gagal');
-        localStorage.setItem('loggedIn', 'true');
-        localStorage.setItem('username', data.user.username);
-        localStorage.setItem('role', data.user.role);
-        showApp();
-      } catch (e) { showAlert(e.message); }
-    });
-
-    document.getElementById('btnLogout').addEventListener('click', () => { localStorage.clear(); location.reload(); });
-
-    if (localStorage.getItem('loggedIn')) showApp();
-
-    // === THEME AUTO BY TIME ===
-    function applyThemeByTime() {
-      const hour = new Date().getHours();
-      if (hour >= 6 && hour < 18) {
-        document.documentElement.classList.remove('dark');
-      } else {
-        document.documentElement.classList.add('dark');
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aplikasi Pencatatan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Loader overlay */
+    #loadingOverlay {
+      transition: opacity 0.3s ease-in-out;
     }
-    applyThemeByTime();
-
-    // === HELPERS ===
-    function fmtRp(num) { return 'Rp ' + Number(num).toLocaleString('id-ID'); }
-    function escapeHtml(s) { return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-
-    function showApp() {
-      loginScreen.classList.add('hidden');
-      app.classList.remove('hidden');
-      fetchAndRender();
+    /* Pagination */
+    #pagination button {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
     }
+    #pagination button.active {
+      background-color: #2563eb;
+      color: white;
+      font-weight: bold;
+    }
+    #pagination button:hover {
+      background-color: #e5e7eb;
+    }
+    /* Modal animasi */
+    #globalModal {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #globalModal.show {
+      opacity: 1;
+    }
+    #globalModal .bg-white {
+      transform: scale(0.95);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    #globalModal.show .bg-white {
+      transform: scale(1);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <!-- Loader -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="text-white text-xl">Loading...</div>
+  </div>
 
+  <!-- Container utama -->
+  <div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">📒 Aplikasi Pencatatan</h1>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="max-w-sm mx-auto bg-white rounded-lg shadow p-4 mb-4">
+      <h2 class="text-lg font-bold mb-2">Login</h2>
+      <input id="usernameInput" type="text" placeholder="Masukkan username"
+        class="border rounded w-full p-2 mb-2" />
+      <button onclick="login()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">Login</button>
+    </div>
+
+    <!-- App Section -->
+    <div id="appSection" class="hidden">
+      <!-- Form tambah item -->
+      <div class="bg-white rounded-lg shadow p-4 mb-4">
+        <h2 class="text-lg font-bold mb-2">Tambah Data</h2>
+        <input id="namaInput" type="text" placeholder="Nama"
+          class="border rounded w-full p-2 mb-2" />
+        <input id="nominalInput" type="number" placeholder="Nominal"
+          class="border rounded w-full p-2 mb-2" />
+        <textarea id="keteranganInput" placeholder="Keterangan"
+          class="border rounded w-full p-2 mb-2"></textarea>
+        <input id="tanggalInput" type="date"
+          class="border rounded w-full p-2 mb-2" />
+        <input id="fileInput" type="file" accept="image/*"
+          class="border rounded w-full p-2 mb-2" />
+        <button onclick="addItem()" class="bg-green-600 text-white px-4 py-2 rounded w-full">Tambah</button>
+      </div>
+
+      <!-- Filter & Search -->
+      <div class="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-2 items-center">
+        <input id="searchInput" type="text" placeholder="Cari data..."
+          class="border rounded p-2 flex-1" oninput="loadItems()" />
+        <select id="sortSelect" onchange="loadItems()" class="border rounded p-2">
+          <option value="tanggal">Tanggal</option>
+          <option value="nominal">Nominal</option>
+          <option value="nama">Nama</option>
+        </select>
+        <select id="orderSelect" onchange="loadItems()" class="border rounded p-2">
+          <option value="desc">Desc</option>
+          <option value="asc">Asc</option>
+        </select>
+        <select id="rangeSelect" onchange="loadItems()" class="border rounded p-2">
+          <option value="all">Semua</option>
+          <option value="today">Hari ini</option>
+          <option value="week">Minggu ini</option>
+          <option value="month">Bulan ini</option>
+        </select>
+      </div>
+
+      <!-- Ringkasan -->
+      <div id="summaryBox" class="bg-white rounded-lg shadow p-4 mb-4"></div>
+
+      <!-- Tabel Data -->
+      <div class="bg-white rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="px-4 py-2">Nama</th>
+              <th class="px-4 py-2">Nominal</th>
+              <th class="px-4 py-2">Tanggal</th>
+              <th class="px-4 py-2">User</th>
+              <th class="px-4 py-2">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="itemsTable"></tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div id="pagination" class="flex gap-2 mt-4"></div>
+    </div>
+  </div>
+
+  <!-- GLOBAL MODAL -->
+  <div id="globalModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative">
+      <div id="modalContent"></div>
+      <div id="modalActions" class="mt-4 flex justify-end gap-2"></div>
+      <button onclick="closeModal()" 
+        class="absolute top-3 right-3 text-gray-500 hover:text-gray-800">✕</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:3000";
+    let currentUser = null;
     let currentPage = 1;
-    const limit = 10;
+    let pageLimit = 5;
 
-    // === Fetch with filters ===
-    async function fetchAndRender() {
-      const params = new URLSearchParams();
+    // Loader
+    function showLoading() { document.getElementById("loadingOverlay").classList.remove("hidden"); }
+    function hideLoading() { document.getElementById("loadingOverlay").classList.add("hidden"); }
 
-      // Search
-      const keyword = document.getElementById('searchInput').value.trim();
-      if (keyword) params.append('search', keyword);
+    // Modal
+    function openModal(content, actions = "") {
+      const modal = document.getElementById("globalModal");
+      document.getElementById("modalContent").innerHTML = content;
+      document.getElementById("modalActions").innerHTML = actions;
+      modal.classList.remove("hidden");
+      setTimeout(() => modal.classList.add("show"), 10);
+    }
+    function closeModal() {
+      const modal = document.getElementById("globalModal");
+      modal.classList.remove("show");
+      setTimeout(() => modal.classList.add("hidden"), 300);
+    }
+    // close modal jika klik luar
+    document.getElementById("globalModal").addEventListener("click", (e) => {
+      if (e.target.id === "globalModal") closeModal();
+    });
+    // Tutup modal pakai ESC
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModal();
+    });
 
-      // Sort
-      const sortVal = document.getElementById('sortSelect').value;
-      if (sortVal === 'date_desc') { params.append('sort', 'tanggal'); params.append('order', 'desc'); }
-      if (sortVal === 'date_asc')  { params.append('sort', 'tanggal'); params.append('order', 'asc'); }
-      if (sortVal === 'nominal_desc') { params.append('sort', 'nominal'); params.append('order', 'desc'); }
-      if (sortVal === 'nominal_asc')  { params.append('sort', 'nominal'); params.append('order', 'asc'); }
-
-      // Range filter
-      const rangeVal = document.getElementById('filterRange').value;
-      if (rangeVal !== 'all') params.append('range', rangeVal);
-
-      // Pagination
-      params.append('page', currentPage);
-      params.append('limit', limit);
-
-      const res = await fetch(ITEMS_ENDPOINT + '?' + params.toString(), {
-        headers: { 'x-username': localStorage.getItem('username') }
-      });
-      if (res.status === 401) return location.reload();
-
-      const { data: items, total } = await res.json();
-
-      render(items);
-      renderPagination(total);
+    // Login
+    async function login() {
+      const username = document.getElementById("usernameInput").value.trim();
+      if (!username) return alert("Masukkan username!");
+      try {
+        showLoading();
+        const res = await fetch(API_URL + "/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username })
+        });
+        hideLoading();
+        if (!res.ok) {
+          const err = await res.json();
+          return alert(err.error || "Login gagal");
+        }
+        const data = await res.json();
+        currentUser = data.user;
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("appSection").classList.remove("hidden");
+        loadItems();
+      } catch (err) {
+        hideLoading();
+        alert("Error: " + err.message);
+      }
     }
 
-    // === Render Pagination ===
-    function renderPagination(totalItems) {
-      const pagination = document.getElementById('pagination');
-      pagination.innerHTML = '';
-      const totalPages = Math.ceil(totalItems / limit);
+    // Tambah item
+    async function addItem() {
+      const nama = document.getElementById("namaInput").value.trim();
+      const nominal = document.getElementById("nominalInput").value.trim();
+      const keterangan = document.getElementById("keteranganInput").value.trim();
+      const tanggal = document.getElementById("tanggalInput").value;
+      const file = document.getElementById("fileInput").files[0];
 
-      if (totalPages <= 1) return;
-
-      const prevBtn = document.createElement('button');
-      prevBtn.textContent = 'Prev';
-      prevBtn.disabled = currentPage === 1;
-      prevBtn.className = `px-3 py-1 rounded ${prevBtn.disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`;
-      prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; fetchAndRender(); } };
-      pagination.appendChild(prevBtn);
-
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement('button');
-        btn.textContent = i;
-        btn.className = "px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300";
-        if (i === currentPage) btn.classList.add("active");
-        btn.onclick = () => { currentPage = i; fetchAndRender(); };
-        pagination.appendChild(btn);
+      if (!nama || !nominal) {
+        return alert("Nama & nominal wajib diisi!");
       }
 
-      const nextBtn = document.createElement('button');
-      nextBtn.textContent = 'Next';
-      nextBtn.disabled = currentPage === totalPages;
-      nextBtn.className = `px-3 py-1 rounded ${nextBtn.disabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`;
-      nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; fetchAndRender(); } };
-      pagination.appendChild(nextBtn);
+      let uploadRes = null;
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        showLoading();
+        const res = await fetch(API_URL + "/upload", {
+          method: "POST",
+          headers: { "x-username": currentUser.username },
+          body: formData
+        });
+        hideLoading();
+        uploadRes = await res.json();
+        if (!uploadRes.success) {
+          return alert("Upload gagal!");
+        }
+      }
+
+      const body = {
+        nama,
+        nominal,
+        keterangan,
+        tanggal,
+        photoUrl: uploadRes ? uploadRes.link : null,
+        publicId: uploadRes ? uploadRes.id : null
+      };
+
+      try {
+        showLoading();
+        const res = await fetch(API_URL + "/items", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-username": currentUser.username
+          },
+          body: JSON.stringify(body)
+        });
+        hideLoading();
+        if (!res.ok) {
+          const err = await res.json();
+          return alert(err.error || "Gagal tambah item");
+        }
+        document.getElementById("namaInput").value = "";
+        document.getElementById("nominalInput").value = "";
+        document.getElementById("keteranganInput").value = "";
+        document.getElementById("tanggalInput").value = "";
+        document.getElementById("fileInput").value = "";
+        loadItems();
+      } catch (err) {
+        hideLoading();
+        alert("Error: " + err.message);
+      }
+    }
+    // Load items
+    async function loadItems(page = 1) {
+      currentPage = page;
+      const search = document.getElementById("searchInput").value;
+      const sort = document.getElementById("sortSelect").value;
+      const order = document.getElementById("orderSelect").value;
+      const range = document.getElementById("rangeSelect").value;
+
+      try {
+        showLoading();
+        const url = new URL(API_URL + "/items");
+        url.searchParams.set("page", currentPage);
+        url.searchParams.set("limit", pageLimit);
+        if (search) url.searchParams.set("search", search);
+        if (sort) url.searchParams.set("sort", sort);
+        if (order) url.searchParams.set("order", order);
+        if (range) url.searchParams.set("range", range);
+
+        const res = await fetch(url, { headers: { "x-username": currentUser.username } });
+        hideLoading();
+        if (!res.ok) {
+          const err = await res.json();
+          return alert(err.error || "Gagal ambil data");
+        }
+        const { data, total, summary } = await res.json();
+        renderTable(data);
+        renderPagination(total);
+        renderSummary(summary);
+      } catch (err) {
+        hideLoading();
+        alert("Error: " + err.message);
+      }
     }
 
-    document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; fetchAndRender(); });
-    document.getElementById('sortSelect').addEventListener('change', () => { currentPage = 1; fetchAndRender(); });
-
-    // === RENDER DATA ===
-    function render(items) {
-      let income = 0, expense = 0;
-      items.forEach(i => { const n = Number(i.nominal) || 0; if (n > 0) income += n; else expense += n; });
-      document.getElementById('totalIncome').textContent = fmtRp(income);
-      document.getElementById('totalExpense').textContent = fmtRp(Math.abs(expense));
-      document.getElementById('totalBalance').textContent = fmtRp(income + expense);
-
-      const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
-      const card = document.getElementById('cardList'); card.innerHTML = '';
-
-      items.forEach(it => {
-        tbody.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2 ${it.nominal >= 0 ? 'text-green-600' : 'text-red-600'}">${fmtRp(it.nominal)}</td>
-            <td class="p-2">${escapeHtml(it.keterangan || '-')}</td>
-            <td class="p-2">${escapeHtml(it.tanggal || '-')}</td>
-            <td class="p-2 text-center">
-              ${it.photoUrl 
-                ? `<button onclick='showDetail(${JSON.stringify(it)})' class="text-blue-500 underline">Lihat</button>` 
-                : '-'}
-            </td>
-            <td class="p-2 text-center"><button onclick="deleteItem(${it.id})" class="text-red-600">Hapus</button></td>
-          </tr>`;
-        card.innerHTML += `
-          <div class="bg-gray-700 p-4 rounded-lg shadow">
-            <div class="flex justify-between">
-              <span>${escapeHtml(it.tanggal || '-')}</span>
-              <span class="${it.nominal >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${fmtRp(it.nominal)}</span>
-            </div>
-            <p class="text-sm mt-2">${escapeHtml(it.keterangan || '-')}</p>
-            <div class="flex justify-between mt-3 text-sm">
-              ${it.photoUrl ? `<a href="${it.photoUrl}" target="_blank" class="text-blue-400 underline">Bukti</a>` : '-'}
-              <button onclick="deleteItem(${it.id})" class="text-red-500">Hapus</button>
-            </div>
-          </div>`;
-      });
-    }
-
-    // === NOMINAL FORMAT ===
-    const nominalInput = document.getElementById('fieldNominal');
-    nominalInput.addEventListener('input', (e) => {
-      let raw = e.target.value;
-      let isNegative = raw.startsWith('-');
-      raw = raw.replace(/[^0-9]/g, '');
-      if (!raw) {
-        e.target.value = isNegative ? '-' : '';
+    // Render tabel
+    function renderTable(items) {
+      const tbody = document.getElementById("itemsTable");
+      tbody.innerHTML = "";
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4">Tidak ada data</td></tr>`;
         return;
       }
-      let formatted = Number(raw).toLocaleString('id-ID');
-      e.target.value = (isNegative ? '-' : '') + formatted;
-    });
-
-    // === FORM SUBMIT ===
-    document.getElementById('itemForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nominalRaw = nominalInput.value.replace(/\./g,'').replace(/,/g,'');
-      const nominal = parseInt(nominalRaw) || 0;
-      const ket = document.getElementById('fieldKeterangan').value.trim();
-      const tanggal = document.getElementById('fieldTanggal').value;
-      const file = document.getElementById('fileInput').files[0];
-
-      if (!nominal) return showAlert('Nominal wajib diisi Ruslan Kasep!');
-      if (!tanggal) return showAlert('Tanggal wajib diisi Ruslan Kasep!');
-
-      showLoading(true);
-      try {
-        let photoUrl = '';
-        if (file) {
-          const formData = new FormData();
-          formData.append('file', file);
-          const r = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
-          if (!r.ok) throw new Error('Upload gagal');
-          const d = await r.json();
-          photoUrl = d.url;
-        }
-
-        const res = await fetch(ITEMS_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-username': localStorage.getItem('username')
-          },
-          body: JSON.stringify({ 
-            nominal, 
-            keterangan: ket, 
-            tanggal, 
-            photoUrl, 
-            username: localStorage.getItem('username') 
-          })
-        });
-        if (!res.ok) throw new Error('Gagal simpan');
-
-        document.getElementById('itemForm').reset();
-        nominalInput.value = '';
-        showAlert('✅ Data berhasil disimpan Ruslan Kasep!');
-        fetchAndRender();
-      } catch (err) {
-        showAlert('Gagal: ' + err.message);
-      } finally { showLoading(false); }
-    });
-
-    // === DELETE ===
-    async function deleteItem(id) {
-      showConfirm('Apakah Anda yakin ingin menghapus data ini Ruslan Kasep?', async () => {
-        try {
-          const res = await fetch(ITEMS_ENDPOINT + '/' + id, {
-            method: 'DELETE',
-            headers: { 'x-username': localStorage.getItem('username') }
-          });
-          if (!res.ok) throw new Error('Gagal hapus');
-          showAlert('✅ Data berhasil dihapus Ruslan Kasep!');
-          fetchAndRender();
-        } catch (err) {
-          showAlert('Error: ' + err.message);
-        }
+      items.forEach(it => {
+        const tr = document.createElement("tr");
+        tr.className = "border-t";
+        tr.innerHTML = `
+          <td class="px-4 py-2">${escapeHtml(it.nama)}</td>
+          <td class="px-4 py-2">Rp ${it.nominal.toLocaleString()}</td>
+          <td class="px-4 py-2">${escapeHtml(it.tanggal)}</td>
+          <td class="px-4 py-2">${escapeHtml(it.user)}</td>
+          <td class="px-4 py-2 flex gap-2">
+            <button class="text-blue-600" onclick="viewDetail(${it.id})">Lihat</button>
+            <button class="text-yellow-600" onclick="editItem(${it.id})">Edit</button>
+            <button class="text-red-600" onclick="deleteItem(${it.id})">Hapus</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
     }
 
-    // === MODAL FUNCS ===
-    function showModal() {
-    const modal = document.getElementById('globalModal');
-    modal.classList.remove('hidden');
-    setTimeout(() => modal.classList.add('show'), 10); // delay biar animasi kebaca
+    // Render pagination
+    function renderPagination(total) {
+      const totalPages = Math.ceil(total / pageLimit);
+      const container = document.getElementById("pagination");
+      container.innerHTML = "";
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.className = i === currentPage ? "active" : "";
+        btn.onclick = () => loadItems(i);
+        container.appendChild(btn);
+      }
     }
 
-    function closeModal() {
-    const modal = document.getElementById('globalModal');
-    modal.classList.remove('show');
-    setTimeout(() => modal.classList.add('hidden'), 300); // sesuai durasi CSS
+    // Render summary
+    function renderSummary(summary) {
+      const box = document.getElementById("summaryBox");
+      if (!summary) return (box.innerHTML = "");
+      let html = `
+        <p><b>Total Data:</b> ${summary.totalItems}</p>
+        <p><b>Total Nominal:</b> Rp ${summary.totalNominal.toLocaleString()}</p>
+      `;
+      if (summary.breakdown) {
+        html += `<h3 class="mt-2 font-bold">Per User:</h3>`;
+        for (const [user, val] of Object.entries(summary.breakdown)) {
+          html += `<p>${user}: ${val.totalItems} item, Rp ${val.totalNominal.toLocaleString()}</p>`;
+        }
+      }
+      box.innerHTML = html;
     }
 
-    function showAlert(msg) {
-    document.getElementById('modalContent').innerHTML = `<p>${msg}</p>`;
-    document.getElementById('modalActions').innerHTML = `
-        <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
-    `;
-    showModal();
+    // Detail modal
+    function viewDetail(id) {
+      fetch(API_URL + "/items", { headers: { "x-username": currentUser.username } })
+        .then(res => res.json())
+        .then(({ data }) => {
+          const it = data.find(x => x.id === id);
+          if (!it) return alert("Data tidak ditemukan");
+          let content = `
+            <h2 class="text-lg font-bold mb-2">Detail Item</h2>
+            <p><b>Nama:</b> ${escapeHtml(it.nama)}</p>
+            <p><b>Nominal:</b> Rp ${it.nominal.toLocaleString()}</p>
+            <p><b>Keterangan:</b> ${escapeHtml(it.keterangan || "-")}</p>
+            <p><b>Tanggal:</b> ${escapeHtml(it.tanggal)}</p>
+            <p><b>User:</b> ${escapeHtml(it.user)}</p>
+          `;
+          if (it.photoUrl) {
+            content += `<p class="mt-2"><a href="${it.photoUrl}" target="_blank" class="text-blue-600 underline">Lihat Bukti</a></p>`;
+          }
+          openModal(content, `<button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">Tutup</button>`);
+        });
     }
 
-    function showConfirm(msg, onYes) {
-    document.getElementById('modalContent').innerHTML = `<p>${msg}</p>`;
-    document.getElementById('modalActions').innerHTML = `
-        <button onclick="closeModal()" class="bg-gray-400 text-white px-4 py-2 rounded">No</button>
-        <button onclick="closeModal(); (${onYes.toString()})();" class="bg-red-600 text-white px-4 py-2 rounded">Yes</button>
-    `;
-    showModal();
+    // Edit item
+    function editItem(id) {
+      fetch(API_URL + "/items", { headers: { "x-username": currentUser.username } })
+        .then(res => res.json())
+        .then(({ data }) => {
+          const it = data.find(x => x.id === id);
+          if (!it) return alert("Data tidak ditemukan");
+
+          const content = `
+            <h2 class="text-lg font-bold mb-2">Edit Item</h2>
+            <input id="editNama" value="${escapeHtml(it.nama)}" class="border rounded w-full p-2 mb-2" />
+            <input id="editNominal" type="number" value="${it.nominal}" class="border rounded w-full p-2 mb-2" />
+            <textarea id="editKet" class="border rounded w-full p-2 mb-2">${escapeHtml(it.keterangan || "")}</textarea>
+            <input id="editTanggal" type="date" value="${escapeHtml(it.tanggal)}" class="border rounded w-full p-2 mb-2" />
+          `;
+
+          const actions = `
+            <button onclick="closeModal()" class="px-4 py-2 rounded bg-gray-400 text-white">Batal</button>
+            <button onclick="saveEdit(${id})" class="px-4 py-2 rounded bg-green-600 text-white">Simpan</button>
+          `;
+
+          openModal(content, actions);
+        });
     }
 
-    function showDetail(item) {
-    document.getElementById('modalContent').innerHTML = `
-        <h3 class="font-bold text-lg mb-2">Detail Transaksi</h3>
-        <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
-        <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || '-')}</p>
-        <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || '-')}</p>
-        <p><b>Dibuat:</b> ${escapeHtml(item.createdAt || '-')}</p>
-        <p><b>Oleh:</b> ${escapeHtml(item.username || '-')}</p>
-        ${item.photoUrl ? `<p class="mt-2"><b>Foto:</b><br>
-        <a href="${item.photoUrl}" target="_blank">
-            <img src="${item.photoUrl}" alt="foto" class="mt-1 max-h-40 rounded" />
-        </a></p>` : ''}
-    `;
-    document.getElementById('modalActions').innerHTML = `
-        <button onclick="closeModal()" class="bg-blue-600 text-white px-4 py-2 rounded">Tutup</button>
-    `;
-    showModal();
-    }
-
-    // Tutup modal jika klik luar
-    document.getElementById('globalModal').addEventListener('click', (e) => {
-    if (e.target.id === 'globalModal') closeModal();
-    });
-
-    // Tutup modal pakai ESC
-    document.addEventListener('keydown', (e) => {
-    if (e.key === "Escape") closeModal();
-    });
-
-    function showLoading(b) { document.getElementById('loadingOverlay').classList.toggle('hidden', !b); }
-
-    // === Export CSV ===
-    document.getElementById('btnExportCSV').addEventListener('click', async () => {
+    async function saveEdit(id) {
+      const body = {
+        nama: document.getElementById("editNama").value.trim(),
+        nominal: document.getElementById("editNominal").value.trim(),
+        keterangan: document.getElementById("editKet").value.trim(),
+        tanggal: document.getElementById("editTanggal").value
+      };
       try {
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') }});
-        const { data } = await res.json();
-        if (!data || !data.length) return showAlert('Data kosong');
-        const csv = [
-          ['Nominal','Keterangan','Tanggal','Photo URL','CreatedAt','Username'].join(','),
-          ...data.map(i => [i.nominal, `"${i.keterangan}"`, i.tanggal, i.photoUrl, i.createdAt, i.username].join(','))
-        ].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'transaksi.csv'; a.click();
-        URL.revokeObjectURL(url);
-      } catch (err) { showAlert('Gagal export: ' + err.message); }
-    });
+        showLoading();
+        const res = await fetch(API_URL + "/items/" + id, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-username": currentUser.username
+          },
+          body: JSON.stringify(body)
+        });
+        hideLoading();
+        if (!res.ok) {
+          const err = await res.json();
+          return alert(err.error || "Update gagal");
+        }
+        closeModal();
+        loadItems(currentPage);
+      } catch (err) {
+        hideLoading();
+        alert("Error: " + err.message);
+      }
+    }
 
-    // === Export Excel ===
-    document.getElementById('btnExportExcel').addEventListener('click', async () => {
+    // Delete item
+    function deleteItem(id) {
+      const content = `<p>Yakin mau hapus item ini?</p>`;
+      const actions = `
+        <button onclick="closeModal()" class="px-4 py-2 rounded bg-gray-400 text-white">Batal</button>
+        <button onclick="confirmDelete(${id})" class="px-4 py-2 rounded bg-red-600 text-white">Hapus</button>
+      `;
+      openModal(content, actions);
+    }
+
+    async function confirmDelete(id) {
       try {
-        const res = await fetch(ITEMS_ENDPOINT, { headers: { 'x-username': localStorage.getItem('username') }});
-        const { data } = await res.json();
-        if (!data || !data.length) return showAlert('Data kosong');
-        const rows = [ 
-          ['Nominal','Keterangan','Tanggal','Photo URL','CreatedAt','Username'],
-          ...data.map(i => [i.nominal, i.keterangan, i.tanggal, i.photoUrl, i.createdAt, i.username]) 
-        ];
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Transaksi');
-        XLSX.writeFile(wb, 'transaksi.xlsx');
-      } catch (err) { showAlert('Gagal export: ' + err.message); }
-    });
+        showLoading();
+        const res = await fetch(API_URL + "/items/" + id, {
+          method: "DELETE",
+          headers: { "x-username": currentUser.username }
+        });
+        hideLoading();
+        if (!res.ok) {
+          const err = await res.json();
+          return alert(err.error || "Hapus gagal");
+        }
+        closeModal();
+        loadItems(currentPage);
+      } catch (err) {
+        hideLoading();
+        alert("Error: " + err.message);
+      }
+    }
 
-    // load xlsx
-    (function(){
-      const s=document.createElement('script');
-      s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-      document.body.appendChild(s);
-    })();
-
-    </script>
-  </body>
+    // Escape HTML
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
 </html>
