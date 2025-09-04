@@ -78,16 +78,18 @@ app.post("/items", (req, res) => {
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
     const items = readData();
-    const { nominal, keterangan, tanggal, photoUrl, publicId } = req.body || {};
+    const { nama, nominal, keterangan, tanggal, photoUrl, publicId } = req.body || {};
 
+    // simple validation & normalization
     const parsedNominal = Number(nominal);
-    if (Number.isNaN(parsedNominal)) {
-      return res.status(400).json({ error: "Nominal wajib diisi dan harus angka" });
+    if (!nama || Number.isNaN(parsedNominal)) {
+      return res.status(400).json({ error: "Nama & nominal wajib diisi (nominal harus angka)" });
     }
 
     const newItem = {
       id: Date.now(),
-      user: user.username, // pake username sbg identitas pemilik
+      user: user.username,
+      nama: String(nama),
       nominal: parsedNominal,
       keterangan: keterangan ? String(keterangan) : "",
       tanggal: tanggal ? String(tanggal) : new Date().toISOString().split("T")[0],
