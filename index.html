@@ -144,16 +144,8 @@
           <!-- Table Desktop -->
           <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full border-collapse">
-              <thead id="tableHead" class="bg-gray-100 dark:bg-gray-700"></thead>
-                <tr>
-                  <th class="p-3 text-left">Nominal</th>
-                  <th class="p-3 text-left">Keterangan</th>
-                  <th class="p-3 text-left">Tanggal</th>
-                  <th class="p-3 text-center">Bukti</th>
-                  <th class="p-3 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
+                <thead id="tableHead" class="bg-gray-100 dark:bg-gray-700"></thead>
+                <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
             </table>
           </div>
           
@@ -616,7 +608,7 @@
 
         let html = `
             <h2 class="text-lg font-bold mb-4">Detail Transaksi</h2>
-            <p><b>Nama:</b> ${escapeHtml(item.nama || "-")}</p>
+            <p><b>Nama:</b> ${escapeHtml(item.user || item.nama || "-")}</p>
             <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
             <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || "-")}</p>
             <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || "-")}</p>
@@ -639,12 +631,13 @@
         // === NOMINAL FORMAT INPUT ===
         const nominalInput = document.getElementById("fieldNominal");
         nominalInput.addEventListener("input", (e) => {
-        let raw = e.target.value.replace(/[^0-9-]/g, "");
-        if (!raw || raw === "-") {
+            let raw = e.target.value.replace(/[^\d-]/g, "");
+            if (raw.startsWith("--")) raw = raw.replace(/^-+/, "-");
+            if (!raw || raw === "-") {
             e.target.value = raw;
             return;
-        }
-        e.target.value = Number(raw).toLocaleString("id-ID");
+            }
+            e.target.value = Number(raw).toLocaleString("id-ID");
         });
 
         // === ADMIN MODE: Ambil daftar user dan tampilkan dropdown ===
@@ -722,6 +715,7 @@
 
                 if (!createRes.ok) throw new Error(await createRes.text());
                 document.getElementById("itemForm").reset();
+                document.getElementById("fileInput").value = "";
                 nominalInput.value = "";
                 statusEl.textContent = "Transaksi tersimpan";
                 setTimeout(() => (statusEl.textContent = ""), 2000);
