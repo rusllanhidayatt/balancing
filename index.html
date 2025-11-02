@@ -92,6 +92,14 @@
                      file:rounded-lg file:border-0
                      file:bg-blue-600 file:text-white
                      hover:file:bg-blue-700" />
+            <div id="userSelectContainer" class="hidden md:col-span-1">
+                <select id="userSelect" class="w-full h-11 px-3 rounded bg-gray-700 text-white">
+                    <!-- Default manual fallback -->
+                    <option value="">Pilih User</option>
+                    <option value="ruslan">Ruslan</option>
+                    <option value="fenita">Fenita</option>
+                </select>
+            </div>
             <button id="submitBtn" type="submit"
               class="md:col-span-1 w-full bg-green-600 hover:bg-green-500 py-2 rounded text-white font-semibold">
               Simpan
@@ -302,9 +310,10 @@
         }
 
         function showApp() {
-        loginScreen.classList.add("hidden");
-        app.classList.remove("hidden");
-        importIfNeeded().then(fetchAndRender);
+            loginScreen.classList.add("hidden");
+            app.classList.remove("hidden");
+            loadUsersIfAdmin();
+            importIfNeeded().then(fetchAndRender);
         }
 
         // === IMPORT VIA URL PARAM ===
@@ -621,75 +630,100 @@
         e.target.value = Number(raw).toLocaleString("id-ID");
         });
 
+        // === ADMIN MODE: Ambil daftar user dan tampilkan dropdown ===
+        async function loadUsersIfAdmin() {
+            if (localStorage.getItem("role") !== "admin") return;
+            const userSelectContainer = document.getElementById("userSelectContainer");
+            const userSelect = document.getElementById("userSelect");
+            userSelectContainer.classList.remove("hidden");
+
+            try {
+            const res = await fetch(API_URL + "/users", {
+                headers: { "x-username": localStorage.getItem("username") },
+            });
+            const { data } = await res.json();
+            userSelect.innerHTML = `<option value="">Pilih User</option>` + 
+                data.map(u => `<option value="${u.username}">${u.username}</option>`).join("");
+            } catch (e) {
+            console.warn("Gagal load users, pakai list default.");
+            }
+        }
+
         // === FORM SUBMIT ===
         document.getElementById("itemForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const nominalRaw = nominalInput.value.replace(/\./g, "").replace(/,/g, "");
-        const nominal = Number(nominalRaw);
-        const keterangan = document.getElementById("fieldKeterangan").value.trim();
-        const tanggal =
-            document.getElementById("fieldTanggal").value ||
-            new Date().toISOString().split("T")[0];
-        const file = document.getElementById("fileInput").files[0];
-        const statusEl = document.getElementById("uploadStatus");
-        statusEl.textContent = "";
-        if (!nominal)
-            return showAlert("Nominal wajib di isi Ruslan Kasep Marahloh!", "error");
-
-        let photoUrl = null,
-            publicId = null;
-        try {
-            if (file) {
-            statusEl.textContent = "Uploading...";
-            const fd = new FormData();
-            fd.append("file", file);
-            const up = await fetch(UPLOAD_ENDPOINT, {
-                method: "POST",
-                headers: { "x-username": localStorage.getItem("username") },
-                body: fd,
-            });
-            const j = await up.json();
-            if (!up.ok) throw new Error(j.error || "Upload gagal");
-            photoUrl = j.link || null;
-            publicId = j.id || null;
-            statusEl.textContent = "Upload selesai";
-            }
-            const createRes = await fetch(ITEMS_ENDPOINT, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-username": localStorage.getItem("username"),
-            },
-            body: JSON.stringify({
-                nama: localStorage.getItem("username"),
-                nominal,
-                keterangan,
-                tanggal,
-                photoUrl,
-                publicId,
-            }),
-            });
-            if (!createRes.ok) throw new Error(await createRes.text());
-            document.getElementById("itemForm").reset();
-            nominalInput.value = "";
-            statusEl.textContent = "Transaksi tersimpan";
-            setTimeout(() => (statusEl.textContent = ""), 2000);
-            fetchAndRender();
-        } catch (err) {
-            showAlert("❌ " + err.message, "error");
+            e.preventDefault();
+            const nominalRaw = nominalInput.value.replace(/\./g, "").replace(/,/g, "");
+            const nominal = Number(nominalRaw);
+            const keterangan = document.getElementById("fieldKeterangan").value.trim();
+            const tanggal =
+                document.getElementById("fieldTanggal").value ||
+                new Date().toISOString().split("T")[0];
+            const file = document.getElementById("fileInput").files[0];
+            const statusEl = document.getElementById("uploadStatus");
+            const userSelect = document.getElementById("userSelect");
             statusEl.textContent = "";
-        }
-        });
+            if (!nominal) return showAlert("Nominal wajib di isi Ruslan Kasep Marahloh!", "error");
 
-        // === DELETE ITEM ===
-        function confirmDelete(id) {
-        showAlertConfirm("Hapus transaksi ini?", async () => {
-            await fetch(ITEMS_ENDPOINT + "/" + id, {
-            method: "DELETE",
-            headers: { "x-username": localStorage.getItem("username") },
+            // === Admin override user ===
+            const isAdmin = localStorage.getItem("role") === "admin";
+            const selectedUser = isAdmin && userSelect?.value ? userSelect.value : localStorage.getItem("username");
+            const nama = selectedUser; // override nama
+
+            let photoUrl = null, publicId = null;
+            try {
+                if (file) {
+                statusEl.textContent = "Uploading...";
+                const fd = new FormData();
+                fd.append("file", file);
+                const up = await fetch(UPLOAD_ENDPOINT, {
+                    method: "POST",
+                    headers: { "x-username": selectedUser },
+                    body: fd,
+                });
+                const j = await up.json();
+                if (!up.ok) throw new Error(j.error || "Upload gagal");
+                photoUrl = j.link || null;
+                publicId = j.id || null;
+                statusEl.textContent = "Upload selesai";
+                }
+
+                const createRes = await fetch(ITEMS_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-username": selectedUser, // override username header
+                },
+                body: JSON.stringify({
+                    nama,
+                    nominal,
+                    keterangan,
+                    tanggal,
+                    photoUrl,
+                    publicId,
+                }),
+                });
+
+                if (!createRes.ok) throw new Error(await createRes.text());
+                document.getElementById("itemForm").reset();
+                nominalInput.value = "";
+                statusEl.textContent = "Transaksi tersimpan";
+                setTimeout(() => (statusEl.textContent = ""), 2000);
+                fetchAndRender();
+            } catch (err) {
+                showAlert("❌ " + err.message, "error");
+                statusEl.textContent = "";
+            }
             });
-            fetchAndRender();
-        });
+
+            // === DELETE ITEM ===
+            function confirmDelete(id) {
+            showAlertConfirm("Hapus transaksi ini?", async () => {
+                await fetch(ITEMS_ENDPOINT + "/" + id, {
+                method: "DELETE",
+                headers: { "x-username": localStorage.getItem("username") },
+                });
+                fetchAndRender();
+            });
         }
 
         // === EXPORT EXCEL ===

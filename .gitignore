@@ -5,6 +5,7 @@ node_modules/
 # environment
 .env
 .env.*
+.vscode
 
 
 # local data file (biar container/railway bikin baru sendiri)
