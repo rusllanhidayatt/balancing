@@ -88,7 +88,7 @@
       </div>
     </div>
 
-    <p class="mt-6 text-center text-xs text-zinc-400">Kolom yang dikenali: username, nama, nominal, keterangan, tanggal, photoUrl</p>
+    <p class="mt-6 text-center text-xs text-zinc-400">Kolom yang dikenali: user, nama, nominal, keterangan, tanggal, photoUrl (opsional: photoRemovedAt)</p>
   </div>
 
   <!-- UI only: tampilkan nama file + drag & drop ke dropzone -->
@@ -124,7 +124,10 @@
     keterangan: ["keterangan", "Keterangan"],
     tanggal: ["tanggal", "Tanggal", "date", "Date"],
     photoUrl: ["photoUrl", "PhotoUrl", "foto", "Foto"],
-    publicId: ["publicId", "PublicId"]
+    publicId: ["publicId", "PublicId"],
+    // Opsional: penanda foto dihapus otomatis (kolom dari hasil Export Excel)
+    photoRemovedAt: ["photoRemovedAt", "PhotoRemovedAt"],
+    photoRemovedReason: ["photoRemovedReason", "PhotoRemovedReason"]
   };
 
   function findValue(record, keys, fallback = null) {
@@ -145,7 +148,9 @@
       keterangan: String(findValue(record, FIELD_MAP.keterangan, "")),
       tanggal: String(findValue(record, FIELD_MAP.tanggal, new Date().toISOString().split("T")[0])).slice(0, 10),
       photoUrl: findValue(record, FIELD_MAP.photoUrl, null),
-      publicId: findValue(record, FIELD_MAP.publicId, null)
+      publicId: findValue(record, FIELD_MAP.publicId, null),
+      photoRemovedAt: findValue(record, FIELD_MAP.photoRemovedAt, null),
+      photoRemovedReason: findValue(record, FIELD_MAP.photoRemovedReason, null)
     };
   }
 
@@ -195,7 +200,9 @@
           keterangan: normalized.keterangan,
           tanggal: normalized.tanggal,
           photoUrl: normalized.photoUrl,
-          publicId: normalized.publicId
+          publicId: normalized.publicId,
+          photoRemovedAt: normalized.photoRemovedAt,
+          photoRemovedReason: normalized.photoRemovedReason
         })
       });
 

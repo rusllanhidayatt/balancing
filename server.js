@@ -80,7 +80,7 @@ app.post("/items", (req, res) => {
     const items = readData();
 
     // === whitelist field yang boleh dipakai ===
-    const allowedFields = ["nama", "nominal", "keterangan", "tanggal", "photoUrl", "publicId"];
+    const allowedFields = ["nama", "nominal", "keterangan", "tanggal", "photoUrl", "publicId", "photoRemovedAt", "photoRemovedReason"];
     const data = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
@@ -105,6 +105,13 @@ app.post("/items", (req, res) => {
       publicId: data.publicId || null,
       createdAt: new Date().toISOString(),
     };
+
+    // Penanda foto yang dihapus otomatis (dibawa saat import ulang hasil export).
+    // Hanya disimpan kalau memang tidak ada foto.
+    if (data.photoRemovedAt && !newItem.photoUrl) {
+      newItem.photoRemovedAt = String(data.photoRemovedAt);
+      newItem.photoRemovedReason = data.photoRemovedReason ? String(data.photoRemovedReason) : "storage";
+    }
 
     items.push(newItem);
     writeData(items);
@@ -324,6 +331,81 @@ app.delete("/items/:id", async (req, res) => {
 });
 
 // === Upload ke Cloudinary ===
+// === Manajemen storage Cloudinary (auto-hapus foto lama saat penuh) ===
+// STORAGE_LIMIT_PERCENT: ambang pemakaian (%) untuk mulai menghapus foto lama (default 90)
+// EVICT_BATCH: jumlah foto paling lama yang dihapus per kejadian (default 3)
+const STORAGE_LIMIT_PERCENT = Number(process.env.STORAGE_LIMIT_PERCENT) || 90;
+const EVICT_BATCH = Number(process.env.EVICT_BATCH) || 3;
+let usageCache = { at: 0, percent: null };
+
+async function getUsagePercent() {
+  // Cache 10 menit supaya tidak boros kuota Admin API
+  if (Date.now() - usageCache.at < 10 * 60 * 1000) return usageCache.percent;
+  try {
+    const u = await cloudinary.api.usage();
+    const pct = u?.credits?.used_percent ?? u?.storage?.used_percent ?? null;
+    usageCache = { at: Date.now(), percent: typeof pct === "number" ? pct : null };
+  } catch (err) {
+    console.error("Cloudinary usage error:", err?.message || err);
+    usageCache = { at: Date.now(), percent: null };
+  }
+  return usageCache.percent;
+}
+
+function isQuotaError(err) {
+  const msg = String(err?.message || err?.error?.message || "");
+  return err?.http_code === 420 || err?.http_code === 402 || /quota|exceed|storage|credit|limit/i.test(msg);
+}
+
+// Hapus foto paling lama milik `username` (fallback: paling lama dari semua user).
+// Transaksi TIDAK dihapus — hanya foto, lalu ditandai photoRemovedAt/photoRemovedReason.
+async function evictOldestPhotos(username, count = EVICT_BATCH) {
+  const byAge = (a, b) =>
+    String(a.tanggal || "").localeCompare(String(b.tanggal || "")) ||
+    String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+  const all = readData().filter((i) => i.publicId);
+  let candidates = all.filter((i) => i.user === username).sort(byAge);
+  if (!candidates.length) candidates = all.sort(byAge);
+
+  const removed = [];
+  for (const it of candidates.slice(0, count)) {
+    try {
+      const r = await cloudinary.uploader.destroy(it.publicId);
+      if (r && (r.result === "ok" || r.result === "not found")) removed.push(it.id);
+    } catch (err) {
+      console.error("Evict destroy error:", err?.message || err);
+    }
+  }
+
+  if (removed.length) {
+    // Baca ulang data supaya tidak menimpa perubahan yang masuk selama proses hapus
+    const now = new Date().toISOString();
+    const items = readData();
+    for (const it of items) {
+      if (removed.includes(it.id)) {
+        it.photoUrl = null;
+        it.publicId = null;
+        it.photoRemovedAt = now;
+        it.photoRemovedReason = "storage";
+      }
+    }
+    writeData(items);
+    usageCache.at = 0; // paksa cek ulang pemakaian berikutnya
+    console.log(`Storage: ${removed.length} foto lama dihapus (user ${username})`);
+  }
+  return removed.length;
+}
+
+function uploadBuffer(buffer) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: process.env.CLOUDINARY_FOLDER || "balancing", resource_type: "image" },
+      (error, result) => (error ? reject(error) : resolve(result))
+    );
+    Readable.from(buffer).pipe(stream);
+  });
+}
+
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     const user = getUser(req);
@@ -336,26 +418,34 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       .jpeg({ quality: 75 })
       .toBuffer();
 
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: process.env.CLOUDINARY_FOLDER || "balancing",
-        resource_type: "image",
-      },
-      (error, result) => {
-        if (error) {
-          console.error("Cloudinary error:", error);
-          return res.status(500).json({ error: "Upload failed" });
-        }
-        res.json({
-          success: true,
-          id: result.public_id,
-          link: result.secure_url,
-        });
-      }
-    );
+    // x-username = pemilik data (admin override sudah dikirim frontend)
+    let evicted = 0;
 
-    // pipe compressed buffer into cloudinary stream
-    Readable.from(compressedBuffer).pipe(stream);
+    // 1) Pencegahan: pemakaian sudah di atas ambang → hapus foto paling lama dulu
+    const pct = await getUsagePercent();
+    if (pct !== null && pct >= STORAGE_LIMIT_PERCENT) {
+      evicted += await evictOldestPhotos(user.username);
+    }
+
+    // 2) Upload; kalau ditolak karena kuota → hapus foto lama lalu coba sekali lagi
+    let result;
+    try {
+      result = await uploadBuffer(compressedBuffer);
+    } catch (err) {
+      if (!isQuotaError(err)) throw err;
+      console.warn("Cloudinary kuota penuh, menghapus foto lama lalu coba ulang:", err?.message || err);
+      const freed = await evictOldestPhotos(user.username);
+      evicted += freed;
+      if (!freed) throw err;
+      result = await uploadBuffer(compressedBuffer);
+    }
+
+    res.json({
+      success: true,
+      id: result.public_id,
+      link: result.secure_url,
+      evicted, // jumlah foto lama yang dihapus otomatis
+    });
   } catch (err) {
     console.error("Upload error:", err);
     res.status(500).json({ error: "Upload failed" });
