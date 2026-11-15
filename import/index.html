@@ -2,22 +2,117 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d14" />
   <title>Import Data Keuangan</title>
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', "ui-sans-serif", "system-ui", "sans-serif"] },
+          colors: { ink: { 950: "#07080d", 900: "#0b0d14", 850: "#10131c", 800: "#151925", 700: "#1e2332", 600: "#2a3044" } },
+          boxShadow: {
+            soft: "0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.12)",
+            glow: "0 20px 60px -20px rgba(124,58,237,.55)",
+          },
+        },
+      },
+    };
+    // Tema otomatis sesuai jam (sama seperti halaman utama)
+    (function () { const h = new Date().getHours(); if (h < 6 || h >= 18) document.documentElement.classList.add("dark"); })();
+  </script>
+  <style>
+    html { -webkit-tap-highlight-color: transparent; }
+    .aurora::before, .aurora::after {
+      content: ""; position: fixed; z-index: -1; pointer-events: none;
+      width: 60vmax; height: 60vmax; border-radius: 9999px; filter: blur(90px); opacity: .35;
+    }
+    .aurora::before { top: -25vmax; left: -15vmax; background: radial-gradient(circle, #8b5cf6, transparent 65%); }
+    .aurora::after { bottom: -30vmax; right: -20vmax; background: radial-gradient(circle, #10b981, transparent 65%); opacity: .22; }
+    .dark .aurora::before { opacity: .28; }
+    .dark .aurora::after { opacity: .16; }
+    .hero-card {
+      background:
+        radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.18) 0%, transparent 45%),
+        linear-gradient(135deg, #6d28d9 0%, #4f46e5 45%, #0ea5e9 100%);
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .rise { animation: rise .55s cubic-bezier(.2,.8,.2,1) both; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body class="aurora bg-[#f4f5fa] dark:bg-ink-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans antialiased flex items-center justify-center px-4 py-10">
 
-  <div class="bg-white p-6 rounded-xl shadow w-full max-w-md">
-    <h2 class="text-xl font-bold mb-4">📥 Import Data Keuangan</h2>
-    <input id="fileInput" type="file" accept=".csv,.xlsx"
-           class="w-full mb-4 p-2 border rounded" />
-    <button id="btnImport"
-            class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
-      Import Sekarang
-    </button>
-    <pre id="status" class="mt-3 text-sm text-gray-600 whitespace-pre-wrap"></pre>
+  <div class="w-full max-w-md rise">
+    <a href="../" class="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Kembali ke dashboard
+    </a>
+
+    <div class="rounded-3xl bg-white/85 dark:bg-ink-850/85 backdrop-blur-xl shadow-soft ring-1 ring-black/5 dark:ring-white/10">
+      <div class="flex items-center gap-4 p-6 pb-0">
+        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl hero-card shadow-glow">
+          <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14a2 2 0 0 0 2-2v-4"/><path d="M3 15v4a2 2 0 0 0 2 2"/></svg>
+        </div>
+        <div>
+          <h2 class="text-xl font-extrabold tracking-tight">Import Data Keuangan</h2>
+          <p class="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Unggah file CSV atau Excel (.xlsx).</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 p-6">
+        <!-- Dropzone (gaya shadcn) -->
+        <label id="dropzone" for="fileInput"
+          class="group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 dark:border-ink-600 px-4 py-8 text-center transition hover:border-violet-400 hover:bg-violet-500/5">
+          <span class="grid h-10 w-10 place-items-center rounded-full bg-zinc-100 dark:bg-ink-700 text-zinc-500 dark:text-zinc-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2M14 13h2M8 17h2M14 17h2"/></svg>
+          </span>
+          <span id="fileName" class="text-sm font-semibold">Pilih file atau tarik ke sini</span>
+          <span id="fileHint" class="text-xs text-zinc-500 dark:text-zinc-400">Format: .csv, .xlsx</span>
+          <input id="fileInput" type="file" accept=".csv,.xlsx" class="sr-only" />
+        </label>
+
+        <button id="btnImport"
+          class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-zinc-900 px-4 text-sm font-medium text-white shadow hover:bg-zinc-900/90 dark:bg-white dark:text-zinc-900 dark:hover:bg-white/90 transition">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Import Sekarang
+        </button>
+
+        <pre id="status" class="max-h-64 overflow-auto rounded-xl bg-zinc-50 dark:bg-ink-900/70 p-3 font-mono text-xs leading-relaxed text-zinc-600 dark:text-zinc-300 ring-1 ring-black/5 dark:ring-white/5 whitespace-pre-wrap empty:hidden"></pre>
+      </div>
+    </div>
+
+    <p class="mt-6 text-center text-xs text-zinc-400">Kolom yang dikenali: username, nama, nominal, keterangan, tanggal, photoUrl</p>
   </div>
+
+  <!-- UI only: tampilkan nama file + drag & drop ke dropzone -->
+  <script>
+    (function () {
+      const input = document.getElementById("fileInput");
+      const zone = document.getElementById("dropzone");
+      const name = document.getElementById("fileName");
+      const hint = document.getElementById("fileHint");
+      const on = ["border-violet-400", "bg-violet-500/5"];
+      function sync() {
+        const f = input.files[0];
+        name.textContent = f ? "📎 " + f.name : "Pilih file atau tarik ke sini";
+        hint.textContent = f ? (f.size / 1024).toFixed(1) + " KB · klik untuk ganti" : "Format: .csv, .xlsx";
+        zone.classList.toggle("border-violet-400", !!f);
+      }
+      input.addEventListener("change", sync);
+      ["dragenter", "dragover"].forEach((ev) => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add(...on); }));
+      ["dragleave", "drop"].forEach((ev) => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.remove(...on); }));
+      zone.addEventListener("drop", (e) => {
+        if (e.dataTransfer && e.dataTransfer.files.length) { input.files = e.dataTransfer.files; sync(); }
+      });
+    })();
+  </script>
 
   <script>
   const API_URL = "https://balancing-wop-production.up.railway.app/items";

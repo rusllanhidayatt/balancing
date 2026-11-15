@@ -196,6 +196,23 @@ app.get("/items", (req, res) => {
         });
     }
 
+    // === Filter per user (khusus admin, akses cepat di dashboard) ===
+    if (user.role === "admin" && req.query.user) {
+        items = items.filter((i) => i.user === String(req.query.user));
+    }
+
+    // === Filter tanggal custom (from/to format YYYY-MM-DD, inklusif) ===
+    const { from, to } = req.query;
+    const isISODate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
+    if (isISODate(from) || isISODate(to)) {
+        items = items.filter((i) => {
+            const d = String(i.tanggal || "").slice(0, 10);
+            if (isISODate(from) && d < from) return false;
+            if (isISODate(to) && d > to) return false;
+            return true;
+        });
+    }
+
     // === SUMMARY (sebelum pagination) ===
     const total = items.length;
     const totalNominal = items.reduce((sum, i) => sum + i.nominal, 0);

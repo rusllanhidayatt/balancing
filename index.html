@@ -2,162 +2,972 @@
 <html lang="id">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0d14" />
     <title>Finance Apps</title>
     <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Token shadcn/ui (dipakai di form & filter) + palet app
+      const sc = (v) => `hsl(var(--${v}) / <alpha-value>)`;
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', "ui-sans-serif", "system-ui", "sans-serif"] },
+            colors: {
+              ink: { 950: "#07080d", 900: "#0b0d14", 850: "#10131c", 800: "#151925", 700: "#1e2332", 600: "#2a3044" },
+              border: sc("border"), input: sc("input"), ring: sc("ring"),
+              background: sc("background"), foreground: sc("foreground"),
+              primary: { DEFAULT: sc("primary"), foreground: sc("primary-foreground") },
+              muted: { DEFAULT: sc("muted"), foreground: sc("muted-foreground") },
+              accent: { DEFAULT: sc("accent"), foreground: sc("accent-foreground") },
+              popover: { DEFAULT: sc("popover"), foreground: sc("popover-foreground") },
+            },
+            boxShadow: {
+              soft: "0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.12)",
+              glow: "0 20px 60px -20px rgba(124,58,237,.55)",
+            },
+          },
+        },
+      };
+    </script>
+    <style type="text/tailwindcss">
+      @layer base {
+        :root {
+          --background: 0 0% 100%; --foreground: 240 10% 3.9%;
+          --popover: 0 0% 100%; --popover-foreground: 240 10% 3.9%;
+          --primary: 240 5.9% 10%; --primary-foreground: 0 0% 98%;
+          --muted: 240 4.8% 95.9%; --muted-foreground: 240 3.8% 46.1%;
+          --accent: 240 4.8% 95.9%; --accent-foreground: 240 5.9% 10%;
+          --border: 240 5.9% 90%; --input: 240 5.9% 90%; --ring: 240 5.9% 10%;
+          color-scheme: light;
+        }
+        .dark {
+          --background: 228 27% 7%; --foreground: 0 0% 98%;
+          --popover: 228 27% 9%; --popover-foreground: 0 0% 98%;
+          --primary: 0 0% 98%; --primary-foreground: 240 5.9% 10%;
+          --muted: 226 22% 16%; --muted-foreground: 240 5% 64.9%;
+          --accent: 226 22% 18%; --accent-foreground: 0 0% 98%;
+          --border: 226 20% 20%; --input: 226 20% 22%; --ring: 240 4.9% 83.9%;
+          color-scheme: dark;
+        }
+      }
+      @layer components {
+        /* shadcn-style form controls */
+        .sc-label { @apply mb-2 block text-sm font-medium leading-none; }
+        .sc-input { @apply flex h-10 md:h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-base md:text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring; }
+        .sc-btn { @apply inline-flex h-10 md:h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50; }
+        .sc-btn-primary { @apply bg-primary text-primary-foreground shadow hover:bg-primary/90; }
+        .sc-btn-outline { @apply border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground; }
+      }
+    </style>
+    <style>
+      html { -webkit-tap-highlight-color: transparent; }
+      body { font-feature-settings: "ss01", "cv11"; }
+      .tnum { font-variant-numeric: tabular-nums; }
+
+      /* Background aurora */
+      .aurora::before, .aurora::after {
+        content: ""; position: fixed; z-index: -1; pointer-events: none;
+        width: 60vmax; height: 60vmax; border-radius: 9999px; filter: blur(90px); opacity: .35;
+      }
+      .aurora::before { top: -25vmax; left: -15vmax; background: radial-gradient(circle, #8b5cf6, transparent 65%); }
+      .aurora::after { bottom: -30vmax; right: -20vmax; background: radial-gradient(circle, #10b981, transparent 65%); opacity: .22; }
+      .dark .aurora::before { opacity: .28; }
+      .dark .aurora::after { opacity: .16; }
+
+      /* Hero balance card */
+      .hero-card {
+        background:
+          radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.18) 0%, transparent 45%),
+          linear-gradient(135deg, #6d28d9 0%, #4f46e5 45%, #0ea5e9 100%);
+      }
+      .hero-card .grain {
+        background-image: radial-gradient(rgba(255,255,255,.12) 1px, transparent 1px);
+        background-size: 14px 14px; mask-image: linear-gradient(120deg, transparent 30%, #000 100%);
+      }
+
+      /* Login field (gaya awal) */
+      .field {
+        width: 100%; height: 2.875rem; padding: 0 .95rem; border-radius: .9rem;
+        background: rgb(244 245 248); border: 1px solid transparent; color: inherit; font-size: 16px;
+        transition: border-color .15s, background .15s, box-shadow .15s; outline: none;
+      }
+      .field::placeholder { color: rgb(148 152 168); }
+      .field:focus { background: #fff; border-color: rgb(139 92 246); box-shadow: 0 0 0 4px rgba(139,92,246,.15); }
+      .dark .field { background: rgb(30 35 50 / .7); }
+      .dark .field:focus { background: rgb(21 25 37); }
+
+      /* color-scheme: dark sudah bikin ikon terang, jadi tanpa invert */
+      input[type="date"]::-webkit-calendar-picker-indicator { opacity: .6; cursor: pointer; }
+      input[type="file"]::file-selector-button { cursor: pointer; }
+      .no-scrollbar { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+
+      /* Motion */
+      @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+      @keyframes pop { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
+      @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes zoom { from { opacity: 0; transform: scale(.96); } }
+      @keyframes up { from { transform: translateY(100%); } }
+      .rise { animation: rise .55s cubic-bezier(.2,.8,.2,1) both; }
+      .d1 { animation-delay: .05s; } .d2 { animation-delay: .1s; } .d3 { animation-delay: .15s; } .d4 { animation-delay: .2s; }
+      .overlay:not(.hidden) { animation: fade .18s ease-out both; }
+      .overlay:not(.hidden) > .sheet { animation: pop .28s cubic-bezier(.2,.8,.2,1) both; }
+      .overlay.drawer:not(.hidden) > .sheet { animation: up .3s cubic-bezier(.32,.72,0,1) both; }
+      #selectMenu:not(.hidden), #datePop:not(.hidden) { animation: zoom .12s ease-out; }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-thumb { background: rgba(120,120,140,.3); border-radius: 9999px; border: 3px solid transparent; background-clip: content-box; }
+    </style>
   </head>
-  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+  <body class="aurora bg-[#f4f5fa] dark:bg-ink-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans antialiased">
 
     <!-- LOADING OVERLAY -->
-    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+    <div id="loadingOverlay" class="overlay hidden fixed inset-0 z-50 flex items-center justify-center bg-white/40 dark:bg-black/50 backdrop-blur-sm">
+      <div class="sheet flex flex-col items-center gap-3 rounded-2xl bg-white/90 dark:bg-ink-800/90 px-7 py-6 shadow-soft ring-1 ring-black/5 dark:ring-white/10">
+        <div class="relative h-11 w-11">
+          <div class="absolute inset-0 rounded-full border-[3px] border-violet-500/20"></div>
+          <div class="absolute inset-0 rounded-full border-[3px] border-transparent border-t-violet-500 animate-spin"></div>
+        </div>
+        <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Memuat data…</p>
+      </div>
     </div>
 
     <!-- MODAL BASE -->
-    <div id="modalContainer" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div id="modalContent" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-lg w-full p-6 relative">
-        <button id="modalClose" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✖</button>
-        <div id="modalBody" class="text-sm text-gray-800 dark:text-gray-200">
+    <div id="modalContainer" class="overlay hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-zinc-950/50 backdrop-blur-sm p-0 sm:p-4">
+      <div id="modalContent" class="sheet relative w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white dark:bg-ink-850 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6">
+        <div class="mx-auto mb-4 h-1.5 w-10 rounded-full bg-zinc-200 dark:bg-ink-600 sm:hidden"></div>
+        <button id="modalClose" aria-label="Tutup" class="absolute top-4 right-4 grid h-9 w-9 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-ink-700 dark:hover:text-white transition">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+        <div id="modalBody" class="text-sm text-zinc-700 dark:text-zinc-200">
           <!-- Konten detail transaksi akan dimasukkan via JS -->
         </div>
       </div>
     </div>
 
     <!-- ALERT BASE -->
-    <div id="alertContainer" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-80 p-5 text-center">
-        <p id="alertMessage" class="mb-4 text-gray-800 dark:text-gray-200">Pesan alert</p>
-        <div class="flex justify-center gap-3">
-          <button id="alertOk" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">OK</button>
-          <button id="alertCancel" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500">Batal</button>
+    <div id="alertContainer" class="overlay hidden fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4">
+      <div class="sheet w-full max-w-xs rounded-3xl bg-white dark:bg-ink-850 p-6 text-center shadow-2xl ring-1 ring-black/5 dark:ring-white/10">
+        <p id="alertMessage" class="mb-5 text-[15px] font-medium text-zinc-800 dark:text-zinc-100">Pesan alert</p>
+        <div class="flex justify-center gap-2.5">
+          <button id="alertCancel" class="flex-1 rounded-xl bg-zinc-100 dark:bg-ink-700 px-4 py-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-ink-600 transition">Batal</button>
+          <button id="alertOk" class="flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-500 transition">OK</button>
         </div>
       </div>
     </div>
 
+    <!-- SELECT POPOVER (desktop, gaya shadcn) -->
+    <div id="selectMenu" role="listbox" class="hidden fixed z-[70] max-h-72 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"></div>
+
+    <!-- SELECT DRAWER (mobile, gaya shadcn) -->
+    <div id="selectDrawer" class="overlay drawer hidden fixed inset-0 z-[70] flex items-end bg-black/60 backdrop-blur-sm">
+      <div class="sheet w-full rounded-t-[14px] border border-border bg-background text-foreground px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
+        <div class="mx-auto mb-4 h-1.5 w-12 rounded-full bg-muted"></div>
+        <p id="selectDrawerTitle" class="px-2 pb-2 text-base font-semibold"></p>
+        <div id="selectDrawerList" role="listbox" class="max-h-[60vh] overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <!-- DATE PICKER POPOVER (desktop, gaya shadcn Calendar) -->
+    <div id="datePop" class="hidden fixed z-[70] rounded-md border border-border bg-popover p-3 text-popover-foreground shadow-md"></div>
+
+    <!-- DATE PICKER DRAWER (mobile) -->
+    <div id="dateDrawer" class="overlay drawer hidden fixed inset-0 z-[70] flex items-end bg-black/60 backdrop-blur-sm">
+      <div class="sheet w-full rounded-t-[14px] border border-border bg-background text-foreground px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
+        <div class="mx-auto mb-4 h-1.5 w-12 rounded-full bg-muted"></div>
+        <p id="dateDrawerTitle" class="px-1 pb-3 text-base font-semibold"></p>
+        <div id="dateDrawerBody"></div>
+      </div>
+    </div>
+
     <!-- LOGIN SCREEN -->
-    <main id="loginScreen" class="min-h-screen flex items-center justify-center">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4 text-center">🔐 Masuk</h2>
-        <input id="userInput" class="w-full p-3 mb-3 rounded border dark:bg-gray-700" placeholder="username" />
-        <input id="passInput" type="password" class="w-full p-3 mb-4 rounded border dark:bg-gray-700" placeholder="password" />
-        <button id="btnLogin" class="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700">Masuk</button>
+    <main id="loginScreen" class="min-h-screen flex items-center justify-center px-4 py-10">
+      <div class="w-full max-w-sm rise">
+        <div class="mb-8 text-center">
+          <div class="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl hero-card shadow-glow">
+            <svg class="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 7l2.5-3h11L20 7"/><circle cx="15.5" cy="13.5" r="1.5"/></svg>
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-tight">Halo lagi 👋</h1>
+          <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Masuk buat cek keuangan berdua.</p>
+        </div>
+        <div class="rounded-3xl bg-white/80 dark:bg-ink-850/80 backdrop-blur-xl p-6 shadow-soft ring-1 ring-black/5 dark:ring-white/10">
+          <label for="userInput" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Username</label>
+          <input id="userInput" class="field mb-4" placeholder="username" autocomplete="username" autocapitalize="none" />
+          <label for="passInput" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Password</label>
+          <input id="passInput" type="password" class="field mb-6" placeholder="••••••••" autocomplete="current-password" />
+          <button id="btnLogin" class="group w-full rounded-xl bg-zinc-900 dark:bg-white py-3 text-sm font-bold text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 transition">
+            Masuk <span class="inline-block transition group-hover:translate-x-1">→</span>
+          </button>
+        </div>
+        <p class="mt-6 text-center text-xs text-zinc-400">Dibuat dengan ❤️ untuk kita berdua</p>
       </div>
     </main>
 
     <!-- DASHBOARD -->
     <div id="app" class="hidden">
       <!-- Navbar -->
-      <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 class="font-bold text-lg">📊 Finance</h1>
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="btnExportExcel" class="px-3 py-2 bg-purple-600 text-white rounded">Export Excel</button>
-          <button id="btnLogout" class="px-3 py-2 bg-red-500 text-white rounded">Logout</button>
+      <nav class="sticky top-0 z-40 border-b border-black/5 dark:border-white/5 bg-[#f4f5fa]/75 dark:bg-ink-950/70 backdrop-blur-xl">
+        <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div class="flex items-center gap-3">
+            <div class="grid h-9 w-9 place-items-center rounded-xl hero-card shadow-glow">
+              <svg class="h-[18px] w-[18px] text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+            </div>
+            <div class="leading-tight">
+              <h1 class="text-[15px] font-bold tracking-tight">Finance</h1>
+              <p id="navGreeting" class="text-xs text-zinc-500 dark:text-zinc-400">Keuangan kita</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnExportExcel" class="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-ink-800 px-3.5 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 shadow-soft ring-1 ring-black/5 dark:ring-white/10 hover:ring-violet-400/60 transition">
+              <svg class="h-4 w-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+              <span class="hidden sm:inline">Export Excel</span>
+            </button>
+            <button id="btnLogout" title="Logout" class="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+              <span class="hidden sm:inline">Logout</span>
+            </button>
+          </div>
         </div>
       </nav>
 
       <!-- Content -->
-      <section class="max-w-5xl mx-auto p-6">
+      <section class="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6">
+
+        <!-- Akses cepat user (khusus admin) — memfilter saldo + list -->
+        <input id="filterUser" type="hidden" />
+        <div id="userFilterBar" class="hidden rise mb-4 flex items-center gap-3">
+          <p class="hidden shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400 sm:block">Lihat data</p>
+          <div id="userFilter" role="tablist" aria-label="Lihat data user"
+            class="grid w-full grid-flow-col auto-cols-fr gap-1 rounded-2xl bg-white/80 dark:bg-ink-850/80 p-1 shadow-soft ring-1 ring-black/5 dark:ring-white/5 backdrop-blur sm:inline-grid sm:w-auto"></div>
+        </div>
 
         <!-- Summary -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
-            <p class="text-sm text-gray-500">Pemasukan</p>
-            <p id="totalIncome" class="text-xl font-bold text-green-600">Rp 0</p>
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 mb-6">
+          <div class="hero-card rise relative col-span-2 lg:col-span-1 overflow-hidden rounded-3xl p-6 text-white shadow-glow">
+            <div class="grain absolute inset-0"></div>
+            <div class="relative">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-white/75">Saldo</p>
+                <span class="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur">Total</span>
+              </div>
+              <p id="totalBalance" class="tnum mt-3 text-[2rem] leading-none font-extrabold tracking-tight sm:text-4xl">Rp 0</p>
+              <p id="summaryHint" class="mt-4 truncate text-xs text-white/65">Semua data</p>
+            </div>
           </div>
-          <div class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
-            <p class="text-sm text-gray-500">Pengeluaran</p>
-            <p id="totalExpense" class="text-xl font-bold text-red-600">Rp 0</p>
+          <div class="rise d1 rounded-3xl bg-white dark:bg-ink-850 p-5 shadow-soft ring-1 ring-black/5 dark:ring-white/5">
+            <div class="flex items-center gap-2.5">
+              <span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+              </span>
+              <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Pemasukan</p>
+            </div>
+            <p id="totalIncome" class="tnum mt-4 text-lg sm:text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 break-all">Rp 0</p>
           </div>
-          <div class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow">
-            <p class="text-sm text-gray-500">Saldo</p>
-            <p id="totalBalance" class="text-xl font-bold text-blue-600">Rp 0</p>
+          <div class="rise d2 rounded-3xl bg-white dark:bg-ink-850 p-5 shadow-soft ring-1 ring-black/5 dark:ring-white/5">
+            <div class="flex items-center gap-2.5">
+              <span class="grid h-8 w-8 place-items-center rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17M16 17H7V8"/></svg>
+              </span>
+              <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Pengeluaran</p>
+            </div>
+            <p id="totalExpense" class="tnum mt-4 text-lg sm:text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400 break-all">Rp 0</p>
           </div>
         </div>
 
-        <!-- Form Tambah Transaksi -->
-        <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-lg max-w-3xl mx-auto mt-6 mb-10">
-          <h2 class="text-xl font-semibold mb-4">Tambah Data Sayang ❤️</h2>
-          <form id="itemForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input id="fieldNominal" type="text" inputmode="numeric"
-              placeholder="Nominal (positif/pemasukan)"
-              class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input id="fieldKeterangan" type="text" placeholder="Keterangan"
-              class="w-full h-11 px-3 rounded bg-gray-700 text-white placeholder-gray-400" />
-            <input id="fieldTanggal" type="date"
-            class="w-full h-11 px-3 rounded bg-gray-700 text-white" />
-            <input id="fileInput" type="file" accept="image/*"
-              class="md:col-span-2 w-full h-11 text-sm text-gray-300
-                     file:mr-4 file:py-2 file:px-4
-                     file:rounded-lg file:border-0
-                     file:bg-blue-600 file:text-white
-                     hover:file:bg-blue-700" />
-            <div id="userSelectContainer" class="hidden md:col-span-1">
-                <select id="userSelect" class="w-full h-11 px-3 rounded bg-gray-700 text-white">
+        <!-- Form Tambah Transaksi (gaya shadcn) -->
+        <div class="rise d3 mb-6 rounded-3xl bg-white dark:bg-ink-850 shadow-soft ring-1 ring-black/5 dark:ring-white/5">
+          <div class="p-5 pb-0 sm:p-6 sm:pb-0">
+            <h2 class="text-lg font-bold tracking-tight">Tambah Data Sayang ❤️</h2>
+            <p class="mt-1 text-sm text-muted-foreground">Pakai minus (−) untuk pengeluaran.</p>
+          </div>
+          <form id="itemForm" class="grid grid-cols-1 gap-4 p-5 sm:p-6 md:grid-cols-6">
+            <div class="md:col-span-2">
+              <label for="fieldNominal" class="sc-label">Nominal</label>
+              <div class="relative">
+                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">Rp</span>
+                <input id="fieldNominal" type="text" inputmode="numeric"
+                  placeholder="Nominal (positif/pemasukan)"
+                  class="sc-input tnum pl-9" />
+              </div>
+              <!-- Pilihan cepat nominal -->
+              <div id="quickNominal" class="no-scrollbar -mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5 after:block after:w-2 after:shrink-0 after:content-[''] md:flex-wrap md:overflow-visible md:after:hidden" aria-label="Pilihan cepat nominal"></div>
+            </div>
+            <div class="md:col-span-2">
+              <label for="fieldKeterangan" class="sc-label">Keterangan</label>
+              <input id="fieldKeterangan" type="text" placeholder="Keterangan"
+                class="sc-input" />
+              <!-- Pilihan cepat keterangan -->
+              <div id="quickKet" class="no-scrollbar -mx-1 mt-2 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5 after:block after:w-2 after:shrink-0 after:content-[''] md:flex-wrap md:overflow-visible md:after:hidden" aria-label="Pilihan cepat keterangan"></div>
+            </div>
+            <div class="md:col-span-2">
+              <label for="fieldTanggalBtn" class="sc-label">Tanggal</label>
+              <input id="fieldTanggal" type="hidden" />
+              <button id="fieldTanggalBtn" type="button" aria-haspopup="dialog" aria-expanded="false"
+                class="sc-input items-center gap-2 text-left text-sm">
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span id="fieldTanggalLabel" class="truncate">Pilih tanggal</span>
+              </button>
+            </div>
+            <div id="fileDrop" class="md:col-span-4">
+              <label for="fileInput" class="sc-label">Bukti foto <span class="font-normal text-muted-foreground">(opsional)</span></label>
+              <input id="fileInput" type="file" accept="image/*"
+                class="sc-input py-0 text-muted-foreground file:mr-3 file:h-full file:border-0 file:border-r file:border-solid file:border-input file:bg-transparent file:pr-3 file:text-sm file:font-medium file:text-foreground" />
+            </div>
+            <div id="userSelectContainer" class="hidden md:col-span-2">
+                <label class="sc-label">Untuk</label>
+                <div id="userChips" role="radiogroup" aria-label="Untuk user"
+                  class="grid h-10 grid-flow-col auto-cols-fr gap-0.5 rounded-md border border-input bg-background p-0.5 shadow-sm md:h-9"></div>
+                <select id="userSelect" class="hidden" aria-hidden="true" tabindex="-1">
                     <!-- Default manual fallback -->
                     <option value="">Pilih User</option>
                     <option value="ruslan">Ruslan</option>
                     <option value="fenita">Fenita</option>
                 </select>
             </div>
-            <button id="submitBtn" type="submit"
-              class="md:col-span-1 w-full bg-green-600 hover:bg-green-500 py-2 rounded text-white font-semibold">
-              Simpan
-            </button>
+            <div class="flex items-end md:col-span-2">
+              <button id="submitBtn" type="submit" class="sc-btn sc-btn-primary w-full">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                Simpan
+              </button>
+            </div>
           </form>
-          <p id="uploadStatus" class="text-sm text-gray-400 mt-2"></p>
+          <p id="uploadStatus" class="-mt-2 px-5 pb-5 text-sm text-muted-foreground empty:hidden sm:px-6 sm:pb-6"></p>
         </div>
 
         <!-- List Transaksi -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow max-w-5xl mx-auto mb-10">
+        <div class="rise d4 rounded-3xl bg-white dark:bg-ink-850 p-4 sm:p-6 shadow-soft ring-1 ring-black/5 dark:ring-white/5">
 
-        <!-- Search & Filters -->
-        <div class="flex flex-col gap-3 mb-4">
-
-            <!-- Baris 1: Search + Reset -->
-            <div class="flex items-center gap-2">
-                <input id="searchInput" type="text" placeholder="Cari transaksi..." 
-                class="flex-1 p-2 border rounded dark:bg-gray-700" />
-                <button id="btnReset" title="Reset filter"
-                class="p-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
-                🔄
-                </button>
+          <!-- Header + Tabs rentang waktu (gaya shadcn, sinkron ke #filterRange) -->
+          <div class="mb-4 flex flex-col gap-4 px-1 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 class="text-lg font-bold tracking-tight">Riwayat Transaksi</h2>
+                <!-- Badge filter user aktif (admin) — tap untuk hapus -->
+                <button id="listUserBadge" type="button" class="hidden items-center gap-1.5 rounded-full border border-border bg-muted py-0.5 pl-0.5 pr-2 text-xs font-semibold hover:bg-accent transition" aria-label="Hapus filter user"></button>
+              </div>
+              <p class="mt-1 text-sm text-muted-foreground">Cari, urutkan, dan saring transaksi.</p>
             </div>
+            <div id="rangeTabs" role="tablist" class="grid h-10 w-full grid-cols-4 items-center rounded-lg bg-muted p-1 text-muted-foreground md:inline-flex md:h-9 md:w-auto"></div>
+          </div>
 
-            <!-- Baris 2: Sort + Range -->
-            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
-                <select id="sortSelect" class="p-2 border rounded dark:bg-gray-700">
+          <!-- Search & Filters (gaya shadcn) -->
+          <!-- Mobile: [cari][reset] / [tanggal][urutkan] — Desktop: satu baris -->
+          <div class="mb-4 grid grid-cols-2 gap-2 md:flex">
+            <div class="col-span-2 flex gap-2 md:contents">
+              <div class="relative flex-1 md:order-1">
+                <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input id="searchInput" type="search" placeholder="Cari transaksi..." enterkeyhint="search"
+                class="sc-input pl-9" />
+              </div>
+              <button id="btnReset" title="Reset filter" aria-label="Reset filter" class="sc-btn sc-btn-outline w-10 shrink-0 px-0 md:order-4 md:w-9">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              </button>
+            </div>
+              <!-- Filter tanggal custom -->
+              <div class="min-w-0 md:order-2 md:w-64">
+                <input id="filterFrom" type="hidden" />
+                <input id="filterTo" type="hidden" />
+                <button id="dateRangeBtn" type="button" aria-haspopup="dialog" aria-expanded="false"
+                  class="sc-input items-center gap-2 text-left text-sm">
+                  <svg class="h-4 w-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  <span id="dateRangeLabel" class="min-w-0 flex-1 truncate text-muted-foreground">Pilih tanggal</span>
+                  <span id="dateRangeClear" role="button" aria-label="Hapus filter tanggal" class="hidden -mr-1 h-6 w-6 shrink-0 place-items-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </span>
+                </button>
+              </div>
+              <div class="min-w-0 md:order-3 md:w-52">
+                <select id="sortSelect" data-title="Urutkan" data-icon="sort">
                 <option value="date_desc">Tanggal Terbaru</option>
                 <option value="date_asc">Tanggal Lama</option>
                 <option value="nominal_desc">Nominal Terbesar</option>
                 <option value="nominal_asc">Nominal Terkecil</option>
                 </select>
-                <select id="filterRange" class="p-2 border rounded dark:bg-gray-700">
-                <option value="all">Semua</option>
-                <option value="today">Hari ini</option>
-                <option value="week">Minggu ini</option>
-                <option value="month">Bulan ini</option>
-                </select>
-            </div>
-        </div>
+              </div>
+              <select id="filterRange" class="hidden" aria-hidden="true" tabindex="-1">
+              <option value="all">Semua</option>
+              <option value="today">Hari ini</option>
+              <option value="week">Minggu ini</option>
+              <option value="month">Bulan ini</option>
+              <option value="custom">Custom</option>
+              </select>
+          </div>
 
           <!-- Table Desktop -->
-          <div class="hidden md:block overflow-x-auto">
-            <table class="min-w-full border-collapse">
-                <thead id="tableHead" class="bg-gray-100 dark:bg-gray-700"></thead>
-                <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
+          <div class="hidden md:block overflow-x-auto -mx-2">
+            <table class="min-w-full border-separate border-spacing-y-1 px-2">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
             </table>
           </div>
-          
+
           <!-- Cards Mobile -->
-          <div id="cardList" class="md:hidden space-y-3 mt-4"></div>
+          <div id="cardList" class="md:hidden space-y-2"></div>
+
+          <!-- Empty state -->
+          <div id="emptyState" class="hidden py-14 text-center">
+            <div class="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-zinc-100 dark:bg-ink-700/60 text-2xl">🧾</div>
+            <p class="font-semibold">Belum ada transaksi</p>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Coba ubah filter, atau tambah data baru di atas.</p>
+          </div>
 
           <!-- Pagination -->
-          <div id="pagination" class="flex justify-center mt-6 space-x-2"></div>
+          <div id="pagination" class="mt-6 flex flex-wrap items-center justify-center gap-1.5"></div>
         </div>
 
       </section>
     </div>
+
+    <!-- UI HELPERS: custom select (popover/drawer) + tabs. Hanya tampilan, nilai tetap di <select> asli. -->
+    <script>
+      (function () {
+        const mqMobile = window.matchMedia("(max-width: 639px)");
+        const menu = document.getElementById("selectMenu");
+        const drawer = document.getElementById("selectDrawer");
+        const drawerList = document.getElementById("selectDrawerList");
+        const drawerTitle = document.getElementById("selectDrawerTitle");
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+        const chevron = `<svg class="h-4 w-4 shrink-0 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>`;
+        const sortIcon = `<svg class="hidden sm:block h-4 w-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h10M11 8h7M11 12h4"/></svg>`;
+        const check = `<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+        const syncers = [];
+        let current = null; // { sel, btn }
+
+        function enhanceSelect(sel) {
+          sel.classList.add("hidden");
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "sc-input items-center justify-between gap-2 text-left text-sm";
+          btn.setAttribute("aria-haspopup", "listbox");
+          btn.setAttribute("aria-expanded", "false");
+          btn.innerHTML = `<span class="flex min-w-0 items-center gap-2">${sel.dataset.icon === "sort" ? sortIcon : ""}<span class="truncate" data-label></span></span>${chevron}`;
+          sel.insertAdjacentElement("afterend", btn);
+          const sync = () => {
+            const o = sel.options[sel.selectedIndex];
+            const lbl = btn.querySelector("[data-label]");
+            lbl.textContent = o ? o.text : "";
+            lbl.classList.toggle("text-muted-foreground", !sel.value);
+          };
+          sel.addEventListener("change", sync);
+          btn.addEventListener("click", () => (current && current.sel === sel ? close() : open(sel, btn)));
+          syncers.push(sync);
+          sync();
+        }
+
+        function items(sel, big) {
+          return Array.from(sel.options).map((o) => {
+            const on = o.value === sel.value;
+            const base = big
+              ? "relative flex w-full items-center rounded-md h-12 px-3 pr-10 text-base"
+              : "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm";
+            return `<button type="button" role="option" aria-selected="${on}" data-value="${esc(o.value)}"
+              class="${base} ${on ? "font-semibold" : ""} ${o.value ? "" : "text-muted-foreground"} outline-none hover:bg-accent focus:bg-accent">
+              <span class="truncate">${esc(o.text)}</span>
+              ${on ? `<span class="absolute ${big ? "right-3" : "right-2"} flex items-center">${check}</span>` : ""}
+            </button>`;
+          }).join("");
+        }
+
+        // Posisi popover: selalu di bawah tombol, pindah ke atas hanya kalau ruang bawah tidak cukup
+        function place(el, btn, matchWidth) {
+          const r = btn.getBoundingClientRect();
+          if (matchWidth) el.style.minWidth = r.width + "px";
+          el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - el.offsetWidth - 8)) + "px";
+          const h = el.offsetHeight;
+          const below = window.innerHeight - r.bottom - 8;
+          let top = below < h && r.top > h ? r.top - h - 4 : r.bottom + 4;
+          // Pengaman: popover tidak boleh keluar layar (mis. halaman sudah di-scroll jauh)
+          top = Math.max(8, Math.min(top, window.innerHeight - h - 8));
+          el.style.top = top + "px";
+        }
+        // Hitung ulang setelah frame berikut (Tailwind CDN membuat class baru secara async)
+        function placeSoon(el, btn, matchWidth) {
+          place(el, btn, matchWidth);
+          requestAnimationFrame(() => requestAnimationFrame(() => { if (!el.classList.contains("hidden")) place(el, btn, matchWidth); }));
+        }
+
+        function open(sel, btn) {
+          close();
+          closeDP();
+          current = { sel, btn };
+          btn.setAttribute("aria-expanded", "true");
+          if (mqMobile.matches) {
+            drawerTitle.textContent = sel.dataset.title || "Pilih";
+            drawerList.innerHTML = items(sel, true);
+            drawer.classList.remove("hidden");
+            document.body.style.overflow = "hidden";
+          } else {
+            menu.innerHTML = items(sel, false);
+            menu.classList.remove("hidden");
+            placeSoon(menu, btn, true);
+            (menu.querySelector('[aria-selected="true"]') || menu.querySelector("button"))?.focus({ preventScroll: true });
+          }
+        }
+
+        function close() {
+          if (!current) return;
+          current.btn.setAttribute("aria-expanded", "false");
+          menu.classList.add("hidden");
+          drawer.classList.add("hidden");
+          document.body.style.overflow = "";
+          current = null;
+        }
+
+        function choose(value) {
+          if (!current) return;
+          const { sel, btn } = current;
+          close();
+          btn.focus({ preventScroll: true });
+          if (sel.value === value) return;
+          sel.value = value;
+          sel.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+        [menu, drawerList].forEach((el) =>
+          el.addEventListener("click", (e) => {
+            const b = e.target.closest("[data-value]");
+            if (b) choose(b.dataset.value);
+          })
+        );
+        drawer.addEventListener("click", (e) => { if (e.target === drawer) close(); });
+        document.addEventListener("mousedown", (e) => {
+          if (current && !menu.classList.contains("hidden") && !menu.contains(e.target) && !current.btn.contains(e.target)) close();
+          if (dp && !dPop.classList.contains("hidden") && !dPop.contains(e.target) && !dp.btn.contains(e.target)) closeDP();
+        });
+        // Hanya popover desktop yang ditutup saat resize/scroll (drawer mobile aman dari resize address bar)
+        window.addEventListener("resize", () => {
+          if (!menu.classList.contains("hidden")) close();
+          if (!dPop.classList.contains("hidden")) closeDP();
+        });
+        window.addEventListener("scroll", (e) => {
+          if (!menu.classList.contains("hidden") && !menu.contains(e.target)) close();
+          if (!dPop.classList.contains("hidden") && !dPop.contains(e.target)) closeDP();
+        }, true);
+        menu.addEventListener("keydown", (e) => {
+          const list = Array.from(menu.querySelectorAll("button"));
+          const i = list.indexOf(document.activeElement);
+          if (e.key === "ArrowDown") { e.preventDefault(); list[Math.min(i + 1, list.length - 1)]?.focus(); }
+          if (e.key === "ArrowUp") { e.preventDefault(); list[Math.max(i - 1, 0)]?.focus(); }
+          if (e.key === "Tab") close();
+        });
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape") { close(); closeDP(); } });
+
+        // Tabs rentang waktu
+        const range = document.getElementById("filterRange");
+        const tabs = document.getElementById("rangeTabs");
+        tabs.innerHTML = Array.from(range.options).filter((o) => o.value !== "custom").map((o) =>
+          `<button type="button" role="tab" data-range="${esc(o.value)}"
+            class="inline-flex h-full items-center justify-center whitespace-nowrap rounded-md px-2 text-[13px] font-medium transition-all sm:px-3 sm:text-sm
+                   data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow">${esc(o.text)}</button>`
+        ).join("");
+        function syncTabs() {
+          tabs.querySelectorAll("[data-range]").forEach((b) => {
+            const on = b.dataset.range === range.value;
+            b.dataset.active = on; b.setAttribute("aria-selected", on);
+          });
+        }
+        tabs.addEventListener("click", (e) => {
+          const b = e.target.closest("[data-range]");
+          if (!b || b.dataset.range === range.value) return;
+          range.value = b.dataset.range;
+          range.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        range.addEventListener("change", () => { syncTabs(); syncDR(); });
+        syncTabs();
+
+        enhanceSelect(document.getElementById("sortSelect"));
+
+        // ===================== PILIHAN CEPAT FORM (keterangan + nominal) =====================
+        const fNom = document.getElementById("fieldNominal");
+        const fKet = document.getElementById("fieldKeterangan");
+        const qNom = document.getElementById("quickNominal");
+        const qKet = document.getElementById("quickKet");
+        const QUICK_KET = [
+          { label: "Sayang", value: "Dari Pacar Kesayangan 💕", icon: "💕", sign: 1 },
+          { label: "Nabung", value: "Nabung", icon: "🐼", sign: 1 },
+          { label: "Pengeluaran", value: "Pengeluaran", icon: "💸", sign: -1 },
+        ];
+        // 50k, 100k, 150k, 200k, 250k, 300k … 1jt
+        const QUICK_NOM = [50000, 100000, 150000, 200000, 250000, ...Array.from({ length: 8 }, (_, i) => (i + 3) * 100000)];
+        const nomLabel = (n) => (n >= 1000000 ? n / 1000000 + "jt" : n / 1000 + "k");
+        const chipCls = `shrink-0 snap-start inline-flex h-9 items-center gap-1.5 rounded-full border border-input bg-background px-3.5 text-sm font-medium transition-colors hover:bg-accent
+          data-[active=true]:border-primary data-[active=true]:bg-primary data-[active=true]:text-primary-foreground`;
+        const nomValue = () => Number(fNom.value.replace(/\./g, "").replace(/,/g, "")) || 0;
+        const setNom = (n) => {
+          fNom.value = n ? Number(n).toLocaleString("id-ID") : "";
+          fNom.dispatchEvent(new Event("input", { bubbles: true }));
+        };
+        const ketSign = () => (QUICK_KET.find((k) => k.value === fKet.value.trim()) || {}).sign;
+
+        function renderQuick() {
+          const abs = Math.abs(nomValue());
+          const neg = nomValue() < 0;
+          qNom.innerHTML = QUICK_NOM.map((n) =>
+            `<button type="button" data-nom="${n}" data-active="${abs === n}" class="${chipCls} tnum">${neg && abs === n ? "−" : ""}${nomLabel(n)}</button>`
+          ).join("");
+          qKet.innerHTML = QUICK_KET.map((k, i) =>
+            `<button type="button" data-ket="${i}" data-active="${fKet.value.trim() === k.value}" class="${chipCls}"><span aria-hidden="true">${k.icon}</span>${esc(k.label)}</button>`
+          ).join("");
+        }
+        qNom.addEventListener("click", (e) => {
+          const b = e.target.closest("[data-nom]");
+          if (!b) return;
+          // Tanda ikut keterangan "Pengeluaran" (minus) atau tanda nominal yang sudah ada
+          const negative = ketSign() === -1 || (ketSign() === undefined && nomValue() < 0);
+          setNom(Number(b.dataset.nom) * (negative ? -1 : 1));
+          renderQuick();
+        });
+        qKet.addEventListener("click", (e) => {
+          const b = e.target.closest("[data-ket]");
+          if (!b) return;
+          const k = QUICK_KET[+b.dataset.ket];
+          fKet.value = k.value;
+          // Sesuaikan tanda nominal: Pengeluaran = minus, Sayang/Nabung = plus
+          const n = nomValue();
+          if (n) setNom(Math.abs(n) * k.sign);
+          renderQuick();
+        });
+        fNom.addEventListener("input", () => setTimeout(renderQuick, 0));
+        fKet.addEventListener("input", renderQuick);
+        document.getElementById("itemForm").addEventListener("reset", () => setTimeout(renderQuick, 0));
+        renderQuick();
+
+        // ===================== AKSES CEPAT USER (admin) =====================
+        // Sumber daftar user = opsi #userSelect (diisi loadUsersIfAdmin dari /users).
+        const userSel = document.getElementById("userSelect");
+        const userChips = document.getElementById("userChips");
+        const userBar = document.getElementById("userFilterBar");
+        const userFilter = document.getElementById("userFilter");
+        const filterUser = document.getElementById("filterUser");
+        const AV = ["bg-violet-500", "bg-emerald-500", "bg-amber-500", "bg-sky-500", "bg-rose-500"];
+        const me = () => localStorage.getItem("username") || "";
+        const userList = () => Array.from(userSel.options).map((o) => o.value).filter(Boolean);
+        const avatar = (u, i, size = "h-6 w-6") =>
+          `<span class="grid ${size} shrink-0 place-items-center rounded-full ${AV[i % AV.length]} text-[11px] font-bold text-white">${esc(u.charAt(0).toUpperCase())}</span>`;
+        const cap = (u) => esc(u.charAt(0).toUpperCase() + u.slice(1));
+
+        function renderUserChips() {
+          const isAdmin = localStorage.getItem("role") === "admin";
+          const users = userList();
+          // Form: toggle "Untuk" (kosong = user yang login, sama seperti perilaku lama)
+          const active = userSel.value || me();
+          userChips.innerHTML = users.map((u, i) => {
+            const on = u === active;
+            return `<button type="button" role="radio" aria-checked="${on}" data-u="${esc(u)}" data-active="${on}"
+              class="flex min-w-0 items-center justify-center gap-2 rounded-[5px] px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground
+                     data-[active=true]:bg-primary data-[active=true]:text-primary-foreground">
+              ${avatar(u, i, "h-5 w-5")}<span class="truncate">${cap(u)}</span>${u === me() ? `<span class="hidden text-[11px] opacity-60 lg:inline">(kamu)</span>` : ""}</button>`;
+          }).join("");
+          // Atas dashboard: Semua + tiap user
+          userBar.classList.toggle("hidden", !(isAdmin && users.length));
+          const cur = filterUser.value;
+          const allIcon = `<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+          const tab = (val, inner, on) => `<button type="button" role="tab" aria-selected="${on}" data-f="${esc(val)}" data-active="${on}"
+              class="flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-zinc-500 dark:text-zinc-400 transition hover:text-zinc-900 dark:hover:text-white sm:h-10
+                     data-[active=true]:bg-zinc-900 data-[active=true]:text-white data-[active=true]:shadow-md dark:data-[active=true]:bg-white dark:data-[active=true]:text-zinc-900">${inner}</button>`;
+          userFilter.innerHTML = tab("", `${allIcon}<span>Semua</span>`, !cur) +
+            users.map((u, i) => tab(u, `${avatar(u, i)}<span class="truncate">${cap(u)}</span>`, cur === u)).join("");
+          // Badge di judul list supaya filter user tetap kelihatan saat scroll ke list
+          const badge = document.getElementById("listUserBadge");
+          const showBadge = isAdmin && !!cur;
+          badge.classList.toggle("hidden", !showBadge);
+          badge.classList.toggle("inline-flex", showBadge);
+          badge.innerHTML = showBadge
+            ? `${avatar(cur, Math.max(0, users.indexOf(cur)), "h-5 w-5")}<span>${cap(cur)}</span>
+               <svg class="h-3 w-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`
+            : "";
+        }
+        document.getElementById("listUserBadge").addEventListener("click", () => {
+          if (!filterUser.value) return;
+          filterUser.value = "";
+          renderUserChips();
+          filterUser.dispatchEvent(new Event("change"));
+        });
+
+        userChips.addEventListener("click", (e) => {
+          const b = e.target.closest("[data-u]");
+          if (!b) return;
+          userSel.value = b.dataset.u === me() ? "" : b.dataset.u;
+          renderUserChips();
+        });
+        userFilter.addEventListener("click", (e) => {
+          const b = e.target.closest("[data-f]");
+          if (!b || b.dataset.f === filterUser.value) return;
+          filterUser.value = b.dataset.f;
+          renderUserChips();
+          filterUser.dispatchEvent(new Event("change"));
+        });
+        // Render ulang saat daftar user dimuat / container admin ditampilkan
+        new MutationObserver(renderUserChips).observe(userSel, { childList: true });
+        new MutationObserver(renderUserChips).observe(document.getElementById("userSelectContainer"), { attributes: true, attributeFilter: ["class"] });
+        renderUserChips();
+
+        // ===================== DATE PICKER (gaya shadcn Calendar) =====================
+        const dPop = document.getElementById("datePop");
+        const dDrawer = document.getElementById("dateDrawer");
+        const dDrawerBody = document.getElementById("dateDrawerBody");
+        const dDrawerTitle = document.getElementById("dateDrawerTitle");
+        const pad = (n) => String(n).padStart(2, "0");
+        const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const fromISO = (s) => { const [y, m, d] = String(s || "").split("-").map(Number); return y && m && d ? new Date(y, m - 1, d) : null; };
+        const todayISO = () => toISO(new Date());
+        const fmtD = (s, opt = { day: "numeric", month: "short", year: "numeric" }) => fromISO(s).toLocaleDateString("id-ID", opt);
+        const fmtRange = (a, b) => a === b ? fmtD(a)
+          : fromISO(a).getFullYear() === fromISO(b).getFullYear()
+            ? `${fmtD(a, { day: "numeric", month: "short" })} – ${fmtD(b)}`
+            : `${fmtD(a)} – ${fmtD(b)}`;
+        // Format ringkas untuk tombol filter di HP: "3–12 Nov", "28 Okt–3 Nov", "15 Nov"
+        const fmtRangeShort = (a, b) => {
+          const A = fromISO(a), B = fromISO(b);
+          const mon = (d) => d.toLocaleDateString("id-ID", { month: "short" });
+          if (a === b) return `${A.getDate()} ${mon(A)}`;
+          if (A.getFullYear() !== B.getFullYear()) {
+            const num = (d) => `${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
+            return `${num(A)} – ${num(B)}`;
+          }
+          return A.getMonth() === B.getMonth() ? `${A.getDate()}–${B.getDate()} ${mon(B)}` : `${A.getDate()} ${mon(A)}–${B.getDate()} ${mon(B)}`;
+        };
+        const WEEK = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+        const chevL = `<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
+        const chevR = `<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
+        let dp = null; // { mode: "single"|"range", view, value, start, end, btn, title, onApply, onClear, big }
+
+        function calHTML() {
+          const big = dp.big;
+          const level = dp.level || "days";
+          const y = dp.view.getFullYear(), m = dp.view.getMonth();
+          const t = todayISO();
+          const now = new Date();
+          const lo = dp.mode === "range" ? dp.start : dp.value;
+          const hi = dp.mode === "range" ? (dp.end || dp.start) : dp.value;
+          const navBtn = "grid h-7 w-7 place-items-center rounded-md border border-input bg-background opacity-70 hover:opacity-100 hover:bg-accent transition";
+          const chevD = `<svg class="h-3.5 w-3.5 opacity-60 transition-transform ${level === "days" ? "" : "rotate-180"}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+          const yStart = y - (y % 12); // halaman tahun: 12 tahun per halaman
+          // Tinggi area isi dikunci supaya popover tidak "loncat" saat ganti tampilan
+          const bodyH = big ? "h-[312px]" : "h-[264px]";
+          const tile = "grid place-items-center rounded-md text-sm font-medium outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring";
+
+          let caption, prevLbl, nextLbl, body;
+          if (level === "days") {
+            caption = `<button type="button" data-act="caption" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-semibold capitalize hover:bg-accent transition">${dp.view.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}${chevD}</button>`;
+            prevLbl = "Bulan sebelumnya"; nextLbl = "Bulan berikutnya";
+            const gridStart = new Date(y, m, 1 - new Date(y, m, 1).getDay());
+            const cellSize = big ? "h-11 w-full" : "h-9 w-9";
+            let cells = "";
+            for (let i = 0; i < 42; i++) {
+              const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
+              const iso = toISO(d);
+              const out = d.getMonth() !== m;
+              const isEnd = lo && (iso === lo || iso === hi);
+              const inMid = lo && hi && iso > lo && iso < hi;
+              let cls = `${cellSize} grid place-items-center text-sm tnum outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring ${inMid ? "" : "rounded-md"}`;
+              if (isEnd) cls += " bg-primary text-primary-foreground font-semibold";
+              else if (inMid) cls += " bg-accent text-accent-foreground";
+              else if (iso === t) cls += " bg-accent text-accent-foreground font-semibold hover:bg-accent";
+              else cls += " hover:bg-accent";
+              if (out && !isEnd && !inMid) cls += " text-muted-foreground opacity-50";
+              cells += `<button type="button" data-act="day" data-date="${iso}" class="${cls}" aria-label="${fmtD(iso, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}"${isEnd ? ' aria-pressed="true"' : ""}>${d.getDate()}</button>`;
+            }
+            body = `<div class="mb-1 grid grid-cols-7">${WEEK.map((w) => `<div class="${big ? "" : "w-9"} text-center text-[0.8rem] text-muted-foreground">${w}</div>`).join("")}</div>
+              <div class="grid grid-cols-7 gap-y-1">${cells}</div>`;
+          } else if (level === "months") {
+            caption = `<button type="button" data-act="caption" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-semibold tnum hover:bg-accent transition">${y}${chevD}</button>`;
+            prevLbl = "Tahun sebelumnya"; nextLbl = "Tahun berikutnya";
+            const selM = fromISO(lo);
+            body = `<div class="grid h-full grid-cols-3 grid-rows-4 gap-2">${Array.from({ length: 12 }, (_, i) => {
+              const name = new Date(y, i, 1).toLocaleDateString("id-ID", { month: "short" });
+              const isSel = selM && selM.getFullYear() === y && selM.getMonth() === i;
+              const isNow = now.getFullYear() === y && now.getMonth() === i;
+              const isView = i === m;
+              const cls = isSel ? "bg-primary text-primary-foreground"
+                : isView ? "border border-foreground/30 hover:bg-accent"
+                : isNow ? "bg-accent text-accent-foreground" : "hover:bg-accent";
+              return `<button type="button" data-act="month" data-m="${i}" class="${tile} ${cls}">${name}</button>`;
+            }).join("")}</div>`;
+          } else {
+            caption = `<span class="px-2 py-1 text-sm font-semibold tnum">${yStart} – ${yStart + 11}</span>`;
+            prevLbl = "12 tahun sebelumnya"; nextLbl = "12 tahun berikutnya";
+            const selY = lo ? fromISO(lo).getFullYear() : null;
+            body = `<div class="grid h-full grid-cols-3 grid-rows-4 gap-2">${Array.from({ length: 12 }, (_, i) => {
+              const yy = yStart + i;
+              const cls = yy === selY ? "bg-primary text-primary-foreground"
+                : yy === y ? "border border-foreground/30 hover:bg-accent"
+                : yy === now.getFullYear() ? "bg-accent text-accent-foreground" : "hover:bg-accent";
+              return `<button type="button" data-act="year" data-y="${yy}" class="${tile} tnum ${cls}">${yy}</button>`;
+            }).join("")}</div>`;
+          }
+
+          let footer;
+          if (dp.mode === "single") {
+            footer = `<div class="mt-3 border-t border-border pt-3">
+              <button type="button" data-act="today" class="sc-btn sc-btn-outline w-full">Hari ini</button></div>`;
+          } else {
+            const info = dp.start
+              ? (dp.end ? fmtRange(dp.start, dp.end) : `${fmtD(dp.start)} – <span class="text-muted-foreground">pilih tanggal akhir</span>`)
+              : `<span class="text-muted-foreground">Pilih tanggal awal</span>`;
+            footer = `<div class="mt-3 border-t border-border pt-3">
+              <p class="mb-3 text-center text-sm font-medium">${info}</p>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" data-act="clear" class="sc-btn sc-btn-outline">Hapus</button>
+                <button type="button" data-act="apply" class="sc-btn sc-btn-primary"${dp.start ? "" : " disabled"}>Terapkan</button>
+              </div></div>`;
+          }
+          return `<div class="${big ? "w-full" : "w-[252px]"}">
+            <div class="relative mb-3 flex h-8 items-center justify-center">
+              <button type="button" data-act="prev" aria-label="${prevLbl}" class="${navBtn} absolute left-0">${chevL}</button>
+              ${caption}
+              <button type="button" data-act="next" aria-label="${nextLbl}" class="${navBtn} absolute right-0">${chevR}</button>
+            </div>
+            <div class="${bodyH}">${body}</div>
+            ${footer}
+          </div>`;
+        }
+
+        function renderDP() {
+          (dp.big ? dDrawerBody : dPop).innerHTML = calHTML();
+          if (!dp.big && !dPop.classList.contains("hidden")) placeSoon(dPop, dp.btn, false);
+        }
+
+        function openDP(opts) {
+          close();
+          closeDP();
+          dp = { ...opts, big: mqMobile.matches };
+          const base = fromISO(opts.mode === "range" ? opts.start : opts.value) || new Date();
+          dp.view = new Date(base.getFullYear(), base.getMonth(), 1);
+          dp.level = "days";
+          opts.btn.setAttribute("aria-expanded", "true");
+          renderDP();
+          if (dp.big) {
+            dDrawerTitle.textContent = opts.title;
+            dDrawer.classList.remove("hidden");
+            document.body.style.overflow = "hidden";
+          } else {
+            dPop.classList.remove("hidden");
+            placeSoon(dPop, opts.btn, false);
+          }
+        }
+
+        function closeDP() {
+          if (!dp) return;
+          dp.btn.setAttribute("aria-expanded", "false");
+          dPop.classList.add("hidden");
+          dDrawer.classList.add("hidden");
+          document.body.style.overflow = "";
+          dp = null;
+        }
+
+        [dPop, dDrawerBody].forEach((el) =>
+          el.addEventListener("click", (e) => {
+            const b = e.target.closest("[data-act]");
+            if (!b || !dp) return;
+            const act = b.dataset.act;
+            if (act === "prev" || act === "next") {
+              const dir = act === "next" ? 1 : -1;
+              const lv = dp.level || "days";
+              const vy = dp.view.getFullYear(), vm = dp.view.getMonth();
+              dp.view = lv === "days" ? new Date(vy, vm + dir, 1)
+                : lv === "months" ? new Date(vy + dir, vm, 1)
+                : new Date(vy + dir * 12, vm, 1);
+              return renderDP();
+            }
+            // Judul diklik: tanggal → bulan → tahun
+            if (act === "caption") { dp.level = (dp.level || "days") === "days" ? "months" : "years"; return renderDP(); }
+            if (act === "year") { dp.view = new Date(+b.dataset.y, dp.view.getMonth(), 1); dp.level = "months"; return renderDP(); }
+            if (act === "month") { dp.view = new Date(dp.view.getFullYear(), +b.dataset.m, 1); dp.level = "days"; return renderDP(); }
+            if (act === "day") {
+              const iso = b.dataset.date;
+              if (dp.mode === "single") { const fn = dp.onApply; closeDP(); return fn(iso); }
+              if (!dp.start || dp.end) { dp.start = iso; dp.end = null; }
+              else if (iso < dp.start) { dp.end = dp.start; dp.start = iso; }
+              else dp.end = iso;
+              const d = fromISO(iso);
+              if (d.getMonth() !== dp.view.getMonth()) dp.view = new Date(d.getFullYear(), d.getMonth(), 1);
+              return renderDP();
+            }
+            if (act === "today") { const fn = dp.onApply; closeDP(); return fn(todayISO()); }
+            if (act === "clear") { const fn = dp.onClear; closeDP(); return fn && fn(); }
+            if (act === "apply" && dp.start) { const { onApply, start, end } = dp; closeDP(); return onApply(start, end || start); }
+          })
+        );
+        dDrawer.addEventListener("click", (e) => { if (e.target === dDrawer) closeDP(); });
+
+        // --- Tanggal di form: default hari ini ---
+        const fT = document.getElementById("fieldTanggal");
+        const fTBtn = document.getElementById("fieldTanggalBtn");
+        const fTLbl = document.getElementById("fieldTanggalLabel");
+        function syncFT() {
+          if (!fT.value) { fTLbl.textContent = "Pilih tanggal"; return; }
+          fTLbl.textContent = (fT.value === todayISO() ? "Hari ini · " : "") +
+            fmtD(fT.value, { weekday: fT.value === todayISO() ? undefined : "short", day: "numeric", month: "long", year: "numeric" });
+        }
+        function setFTToday() { fT.value = todayISO(); syncFT(); }
+        setFTToday();
+        fTBtn.addEventListener("click", () =>
+          dp && dp.btn === fTBtn ? closeDP() : openDP({
+            mode: "single", value: fT.value, btn: fTBtn, title: "Pilih tanggal",
+            onApply: (iso) => { fT.value = iso; syncFT(); },
+          })
+        );
+        // Setelah simpan (form.reset) tanggal balik ke hari ini
+        document.getElementById("itemForm").addEventListener("reset", () => setTimeout(setFTToday, 0));
+
+        // --- Filter tanggal custom di list (sinkron ke #filterRange = "custom") ---
+        const fFrom = document.getElementById("filterFrom");
+        const fTo = document.getElementById("filterTo");
+        const drBtn = document.getElementById("dateRangeBtn");
+        const drLbl = document.getElementById("dateRangeLabel");
+        const drClr = document.getElementById("dateRangeClear");
+        function syncDR() {
+          const on = range.value === "custom" && !!fFrom.value;
+          if (!on) { fFrom.value = ""; fTo.value = ""; }
+          drLbl.textContent = on
+            ? (mqMobile.matches ? fmtRangeShort(fFrom.value, fTo.value || fFrom.value) : fmtRange(fFrom.value, fTo.value || fFrom.value))
+            : "Pilih tanggal";
+          drLbl.classList.toggle("text-muted-foreground", !on);
+          drLbl.classList.toggle("font-medium", on);
+          // Tombol X hanya di ≥sm; di HP hapus lewat tombol "Hapus" di kalender / tab "Semua"
+          drClr.classList.toggle("sm:grid", on);
+          // Di HP ikon kalender disembunyikan saat filter aktif supaya label rentang muat
+          drBtn.querySelector("svg").classList.toggle("max-sm:hidden", on);
+          drBtn.classList.toggle("border-foreground/30", on);
+        }
+        function clearDR() {
+          if (range.value === "custom") {
+            range.value = "all";
+            range.dispatchEvent(new Event("change", { bubbles: true }));
+          } else syncDR();
+        }
+        drBtn.addEventListener("click", () =>
+          dp && dp.btn === drBtn ? closeDP() : openDP({
+            mode: "range", start: fFrom.value || null, end: fTo.value || null, btn: drBtn, title: "Filter tanggal",
+            onApply: (a, b) => {
+              fFrom.value = a; fTo.value = b;
+              range.value = "custom";
+              range.dispatchEvent(new Event("change", { bubbles: true }));
+            },
+            onClear: clearDR,
+          })
+        );
+        drClr.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); clearDR(); });
+        mqMobile.addEventListener("change", syncDR);
+        syncDR();
+
+        // Reset filter / reset form mengubah value tanpa event → sinkronkan tampilan
+        const syncAll = () => setTimeout(() => { syncers.forEach((f) => f()); syncTabs(); syncDR(); renderUserChips(); }, 0);
+        document.getElementById("btnReset").addEventListener("click", syncAll);
+        document.getElementById("itemForm").addEventListener("reset", syncAll);
+      })();
+    </script>
 
     <script>
         const API_URL = "https://balancing-wop-production.up.railway.app";
@@ -196,8 +1006,8 @@
         alertContainer.classList.remove("hidden");
         alertMessage.className =
             type === "error"
-            ? "mb-4 text-red-600 dark:text-red-400"
-            : "mb-4 text-green-600 dark:text-green-400";
+            ? "text-[15px] font-semibold text-rose-600 dark:text-rose-400"
+            : "text-[15px] font-semibold text-emerald-600 dark:text-emerald-400";
 
         alertOk.style.display = "none";
         alertCancel.style.display = "none";
@@ -211,6 +1021,7 @@
         // === ALERT CONFIRM (khusus delete) ===
         function showAlertConfirm(message, onOk, onCancel) {
         alertMessage.textContent = message;
+        alertMessage.className = "mb-5 text-[15px] font-semibold text-zinc-800 dark:text-zinc-100";
         alertContainer.classList.remove("hidden");
 
         alertOk.style.display = "inline-block";
@@ -300,10 +1111,23 @@
             .replaceAll("<", "&lt;")
             .replaceAll(">", "&gt;");
         }
+        // Tampilan tanggal (display only): 2025-01-31 -> 31 Jan 2025
+        function fmtDate(s) {
+        if (!s || !/^\d{4}-\d{2}-\d{2}/.test(s)) return escapeHtml(s || "-");
+        const d = new Date(s.slice(0, 10) + "T00:00:00");
+        if (isNaN(d)) return escapeHtml(s);
+        return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+        }
+        function initial(name) {
+        return escapeHtml(String(name || "?").trim().charAt(0).toUpperCase() || "?");
+        }
 
         function showApp() {
             loginScreen.classList.add("hidden");
             app.classList.remove("hidden");
+            const greet = document.getElementById("navGreeting");
+            const uname = localStorage.getItem("username");
+            if (greet && uname) greet.textContent = "Hai, " + uname + (localStorage.getItem("role") === "admin" ? " · admin" : "");
             loadUsersIfAdmin();
             importIfNeeded().then(fetchAndRender);
         }
@@ -347,6 +1171,10 @@
         params.append("page", currentPage);
         params.append("limit", limit);
 
+        // Akses cepat user (admin)
+        const userF = document.getElementById("filterUser").value;
+        if (userF) params.append("user", userF);
+
         const keyword = document.getElementById("searchInput").value.trim();
         if (keyword) params.append("search", keyword);
 
@@ -369,7 +1197,13 @@
         }
 
         const rangeVal = document.getElementById("filterRange").value;
-        if (rangeVal !== "all") params.append("range", rangeVal);
+        if (rangeVal === "custom") {
+            // Filter tanggal custom → from/to (YYYY-MM-DD)
+            const from = document.getElementById("filterFrom").value;
+            const to = document.getElementById("filterTo").value;
+            if (from) params.append("from", from);
+            if (to) params.append("to", to);
+        } else if (rangeVal !== "all") params.append("range", rangeVal);
 
         const listReq = fetch(ITEMS_ENDPOINT + "?" + params.toString(), {
             headers: { "x-username": localStorage.getItem("username") },
@@ -392,6 +1226,7 @@
         document.getElementById("totalIncome").textContent = fmtRp(inc);
         document.getElementById("totalExpense").textContent = fmtRp(Math.abs(exp));
         document.getElementById("totalBalance").textContent = fmtRp(inc + exp);
+        updateSummaryHint();
 
         render(items);
         renderPagination(total);
@@ -399,9 +1234,28 @@
         loadingOverlay.classList.add("hidden");
         }
 
+        // Keterangan kartu Saldo: "Semua data" bila tanpa filter, selain itu sebutkan filternya (display only)
+        function updateSummaryHint() {
+        const parts = [];
+        const u = document.getElementById("filterUser").value;
+        if (u) parts.push(u.charAt(0).toUpperCase() + u.slice(1));
+        const r = document.getElementById("filterRange");
+        if (r.value === "custom") {
+            const lbl = document.getElementById("dateRangeLabel").textContent;
+            if (lbl && lbl !== "Pilih tanggal") parts.push(lbl);
+        } else if (r.value !== "all") parts.push(r.options[r.selectedIndex].text);
+        const k = document.getElementById("searchInput").value.trim();
+        if (k) parts.push(`"${k}"`);
+        document.getElementById("summaryHint").textContent = parts.length ? parts.join(" · ") : "Semua data";
+        }
+
         // === Ambil semua data terfilter (tanpa pagination) ===
         async function fetchAllForSummary() {
         const params = new URLSearchParams();
+
+        // Akses cepat user (admin)
+        const userF = document.getElementById("filterUser").value;
+        if (userF) params.append("user", userF);
 
         const keyword = document.getElementById("searchInput").value.trim();
         if (keyword) params.append("search", keyword);
@@ -425,7 +1279,13 @@
         }
 
         const rangeVal = document.getElementById("filterRange").value;
-        if (rangeVal !== "all") params.append("range", rangeVal);
+        if (rangeVal === "custom") {
+            // Filter tanggal custom → from/to (YYYY-MM-DD)
+            const from = document.getElementById("filterFrom").value;
+            const to = document.getElementById("filterTo").value;
+            if (from) params.append("from", from);
+            if (to) params.append("to", to);
+        } else if (rangeVal !== "all") params.append("range", rangeVal);
 
         params.append("page", 1);
         params.append("limit", 100000);
@@ -444,14 +1304,17 @@
         const totalPages = Math.ceil(totalItems / limit);
         if (totalPages <= 1) return;
 
+        const navCls = (disabled) =>
+            `h-9 px-3.5 rounded-xl text-sm font-semibold transition ${
+            disabled
+                ? "text-zinc-300 dark:text-ink-600 cursor-not-allowed"
+                : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-ink-700"
+            }`;
+
         const prevBtn = document.createElement("button");
-        prevBtn.textContent = "Prev";
+        prevBtn.textContent = "‹ Prev";
         prevBtn.disabled = currentPage === 1;
-        prevBtn.className = `px-3 py-1 rounded ${
-            prevBtn.disabled
-            ? "bg-gray-300 dark:bg-gray-600"
-            : "bg-blue-500 text-white hover:bg-blue-600"
-        }`;
+        prevBtn.className = navCls(prevBtn.disabled);
         prevBtn.onclick = () => {
             if (currentPage > 1) {
             currentPage--;
@@ -464,7 +1327,9 @@
             const btn = document.createElement("button");
             btn.textContent = i;
             btn.className =
-            "px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300";
+            i === currentPage
+                ? "tnum h-9 min-w-[2.25rem] px-2 rounded-xl text-sm font-bold bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-600/25"
+                : "tnum h-9 min-w-[2.25rem] px-2 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-ink-700 transition";
             if (i === currentPage) btn.classList.add("active");
             btn.onclick = () => {
             currentPage = i;
@@ -474,13 +1339,9 @@
         }
 
         const nextBtn = document.createElement("button");
-        nextBtn.textContent = "Next";
+        nextBtn.textContent = "Next ›";
         nextBtn.disabled = currentPage === totalPages;
-        nextBtn.className = `px-3 py-1 rounded ${
-            nextBtn.disabled
-            ? "bg-gray-300 dark:bg-gray-600"
-            : "bg-blue-500 text-white hover:bg-blue-600"
-        }`;
+        nextBtn.className = navCls(nextBtn.disabled);
         nextBtn.onclick = () => {
             if (currentPage < totalPages) {
             currentPage++;
@@ -513,6 +1374,10 @@
         currentPage = 1;
         fetchAndRender();
         });
+        document.getElementById("filterUser").addEventListener("change", () => {
+        currentPage = 1;
+        fetchAndRender();
+        });
 
         // === RESET FILTER ===
         document.getElementById("btnReset").addEventListener("click", () => {
@@ -533,62 +1398,85 @@
             const thead = document.getElementById("tableHead");
             const tbody = document.getElementById("tableBody");
             const card = document.getElementById("cardList");
+            const empty = document.getElementById("emptyState");
+
+            const th = "px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400";
 
             // === Header table ===
             thead.innerHTML = `
                 <tr>
-                ${isAdmin ? `<th class="p-3 text-left">Nama</th>` : ""}
-                <th class="p-3 text-left">Nominal</th>
-                <th class="p-3 text-left">Keterangan</th>
-                <th class="p-3 text-left">Tanggal</th>
-                <th class="p-3 text-center">Bukti</th>
-                <th class="p-3 text-center">Aksi</th>
+                ${isAdmin ? `<th class="${th} text-left">Nama</th>` : ""}
+                <th class="${th} text-left">Keterangan</th>
+                <th class="${th} text-left">Tanggal</th>
+                <th class="${th} text-right">Nominal</th>
+                <th class="${th} text-center">Bukti</th>
+                <th class="${th} text-center">Aksi</th>
                 </tr>
             `;
 
             tbody.innerHTML = "";
             card.innerHTML = "";
+            empty.classList.toggle("hidden", lastItemsCache.length > 0);
+
+            const eyeIcon = `<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
+            const trashIcon = `<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>`;
 
             lastItemsCache.forEach((it) => {
                 const itemId = it.id || it._id;
+                const pos = it.nominal >= 0;
+                const amtCls = pos ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400";
+                const badge = pos
+                    ? `<span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>`
+                    : `<span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17M16 17H7V8"/></svg></span>`;
+                const cell = "bg-zinc-50 dark:bg-ink-800/60 group-hover:bg-zinc-100 dark:group-hover:bg-ink-700/60 px-3 py-3 transition";
 
                 // === Desktop Table Row ===
                 tbody.innerHTML += `
-                <tr class="border-b">
-                    ${isAdmin ? `<td class="p-2 font-medium">${escapeHtml(it.user || "-")}</td>` : ""}
-                    <td class="p-2 ${it.nominal >= 0 ? "text-green-600" : "text-red-600"}">${fmtRp(it.nominal)}</td>
-                    <td class="p-2">${escapeHtml(it.keterangan || "-")}</td>
-                    <td class="p-2">${escapeHtml(it.tanggal || "-")}</td>
-                    <td class="p-2 text-center">
+                <tr class="group">
+                    ${isAdmin ? `<td class="rounded-l-2xl ${cell}">
+                        <div class="flex items-center gap-2.5">
+                          <span class="grid h-7 w-7 place-items-center rounded-full bg-violet-500/15 text-xs font-bold text-violet-700 dark:text-violet-300">${initial(it.user)}</span>
+                          <span class="text-sm font-semibold">${escapeHtml(it.user || "-")}</span>
+                        </div>
+                    </td>` : ""}
+                    <td class="${isAdmin ? "" : "rounded-l-2xl"} ${cell}">
+                        <div class="flex items-center gap-3">
+                          ${badge}
+                          <span class="text-sm font-medium">${escapeHtml(it.keterangan || "-")}</span>
+                        </div>
+                    </td>
+                    <td class="${cell} text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap">${fmtDate(it.tanggal)}</td>
+                    <td class="tnum ${cell} text-right text-sm font-bold whitespace-nowrap ${amtCls}">${pos ? "+" : ""}${fmtRp(it.nominal)}</td>
+                    <td class="${cell} text-center">
                     ${
                         it.photoUrl
-                        ? `<button onclick="openDetail('${itemId}')" class="text-blue-500 underline cursor-pointer">Lihat</button>`
-                        : "-"
+                        ? `<button onclick="openDetail('${itemId}')" class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 transition">${eyeIcon}Lihat</button>`
+                        : `<span class="text-zinc-300 dark:text-ink-600">—</span>`
                     }
                     </td>
-                    <td class="p-2 text-center">
-                    <button onclick="confirmDelete('${itemId}')" class="text-red-600">Hapus</button>
+                    <td class="rounded-r-2xl ${cell} text-center">
+                    <button onclick="confirmDelete('${itemId}')" title="Hapus" aria-label="Hapus" class="inline-grid h-8 w-8 place-items-center rounded-lg text-zinc-400 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 transition">${trashIcon}</button>
                     </td>
                 </tr>
                 `;
 
                 // === Mobile Card ===
                 card.innerHTML += `
-                <div class="bg-gray-700 p-4 rounded-lg shadow">
-                    <div class="flex justify-between">
-                    <span>${escapeHtml(it.tanggal || "-")}</span>
-                    <span class="${it.nominal >= 0 ? "text-green-400" : "text-red-400"} font-bold">${fmtRp(it.nominal)}</span>
+                <div class="flex items-center gap-3 rounded-2xl bg-zinc-50 dark:bg-ink-800/60 p-3.5">
+                    ${badge}
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold">${escapeHtml(it.keterangan || "-")}</p>
+                        <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">${fmtDate(it.tanggal)}${isAdmin ? ` · ${escapeHtml(it.user || "-")}` : ""}</p>
+                        <div class="mt-2 flex items-center gap-1">
+                        ${
+                            it.photoUrl
+                            ? `<button onclick="openDetail('${itemId}')" class="inline-flex items-center gap-1 rounded-lg bg-violet-500/10 px-2 py-1 text-[11px] font-semibold text-violet-600 dark:text-violet-400">${eyeIcon}Bukti</button>`
+                            : ""
+                        }
+                        <button onclick="confirmDelete('${itemId}')" class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-zinc-400 hover:text-rose-500">${trashIcon}Hapus</button>
+                        </div>
                     </div>
-                    <p class="text-sm mt-2">${escapeHtml(it.keterangan || "-")}</p>
-                    ${isAdmin ? `<p class="text-xs text-gray-300 mt-1">User: ${escapeHtml(it.user || "-")}</p>` : ""}
-                    <div class="flex justify-between mt-3 text-sm">
-                    ${
-                        it.photoUrl
-                        ? `<button onclick="openDetail('${itemId}')" class="text-blue-400 underline">Bukti</button>`
-                        : "-"
-                    }
-                    <button onclick="confirmDelete('${itemId}')" class="text-red-500">Hapus</button>
-                    </div>
+                    <span class="tnum shrink-0 self-start text-sm font-bold ${amtCls}">${pos ? "+" : ""}${fmtRp(it.nominal)}</span>
                 </div>
                 `;
             });
@@ -606,23 +1494,28 @@
             return;
         }
 
+        const pos = item.nominal >= 0;
+        const rowCls = "flex items-center justify-between gap-4 py-3";
+        const lblCls = "text-zinc-500 dark:text-zinc-400";
         let html = `
-            <h2 class="text-lg font-bold mb-4">Detail Transaksi</h2>
-            <p><b>Nama:</b> ${escapeHtml(item.user || item.nama || "-")}</p>
-            <p><b>Nominal:</b> ${fmtRp(item.nominal)}</p>
-            <p><b>Keterangan:</b> ${escapeHtml(item.keterangan || "-")}</p>
-            <p><b>Tanggal:</b> ${escapeHtml(item.tanggal || "-")}</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Detail Transaksi</p>
+            <p class="tnum mt-2 text-3xl font-extrabold tracking-tight ${pos ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}">${pos ? "+" : ""}${fmtRp(item.nominal)}</p>
+            <div class="mt-4 divide-y divide-zinc-100 dark:divide-ink-700 rounded-2xl bg-zinc-50 dark:bg-ink-800/60 px-4">
+              <div class="${rowCls}"><span class="${lblCls}">Nama</span><span class="font-semibold text-right">${escapeHtml(item.user || item.nama || "-")}</span></div>
+              <div class="${rowCls}"><span class="${lblCls}">Keterangan</span><span class="font-semibold text-right">${escapeHtml(item.keterangan || "-")}</span></div>
+              <div class="${rowCls}"><span class="${lblCls}">Tanggal</span><span class="font-semibold text-right">${fmtDate(item.tanggal)}</span></div>
+            </div>
         `;
 
         if (item.photoUrl) {
-            html += `<div class="mt-4 text-center">
-                <a href="${item.photoUrl}" target="_blank">
-                    <img src="${item.photoUrl}" alt="Bukti" class="max-h-80 mx-auto rounded-lg shadow cursor-pointer hover:opacity-90">
+            html += `<div class="mt-4">
+                <a href="${item.photoUrl}" target="_blank" class="block overflow-hidden rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
+                    <img src="${item.photoUrl}" alt="Bukti" class="max-h-80 w-full object-contain bg-zinc-100 dark:bg-ink-900 hover:scale-[1.02] transition duration-300 cursor-zoom-in">
                 </a>
-                <p class="text-sm text-blue-500 mt-2"><a href="${item.photoUrl}" target="_blank">Buka gambar asli</a></p>
+                <a href="${item.photoUrl}" target="_blank" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-100 dark:bg-ink-700 py-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-ink-600 transition">Buka gambar asli ↗</a>
             </div>`;
         } else {
-            html += `<p class="mt-3 text-sm text-gray-500">Tidak ada bukti foto.</p>`;
+            html += `<p class="mt-4 text-center text-sm text-zinc-400">Tidak ada bukti foto.</p>`;
         }
 
         showModal(html);
@@ -646,13 +1539,15 @@
             const userSelectContainer = document.getElementById("userSelectContainer");
             const userSelect = document.getElementById("userSelect");
             userSelectContainer.classList.remove("hidden");
+            // admin: file + user + simpan jadi 2/2/2 kolom
+            document.getElementById("fileDrop").classList.replace("md:col-span-4", "md:col-span-2");
 
             try {
             const res = await fetch(API_URL + "/users", {
                 headers: { "x-username": localStorage.getItem("username") },
             });
             const { data } = await res.json();
-            userSelect.innerHTML = `<option value="">Pilih User</option>` + 
+            userSelect.innerHTML = `<option value="">Pilih User</option>` +
                 data.map(u => `<option value="${u.username}">${u.username}</option>`).join("");
             } catch (e) {
             console.warn("Gagal load users, pakai list default.");
