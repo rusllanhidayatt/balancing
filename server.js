@@ -334,22 +334,48 @@ app.delete("/items/:id", async (req, res) => {
 // === Manajemen storage Cloudinary (auto-hapus foto lama saat penuh) ===
 // STORAGE_LIMIT_PERCENT: ambang pemakaian (%) untuk mulai menghapus foto lama (default 90)
 // EVICT_BATCH: jumlah foto paling lama yang dihapus per kejadian (default 3)
+// STORAGE_SHARE_MIN: porsi minimal kredit yang dipakai penyimpanan (0–1) supaya dianggap
+//   "penuh karena penyimpanan" (default 0.5). Kalau penuhnya karena bandwidth, foto TIDAK dihapus.
+// STORAGE_LIMIT_MB (opsional): batas penyimpanan pasti dalam MB; kalau diisi, ini yang dipakai.
 const STORAGE_LIMIT_PERCENT = Number(process.env.STORAGE_LIMIT_PERCENT) || 90;
 const EVICT_BATCH = Number(process.env.EVICT_BATCH) || 3;
-let usageCache = { at: 0, percent: null };
+const STORAGE_SHARE_MIN = Number(process.env.STORAGE_SHARE_MIN) || 0.5;
+const STORAGE_LIMIT_MB = Number(process.env.STORAGE_LIMIT_MB) || 0;
+const EMPTY_USAGE = { pct: null, pctFromStorage: false, share: null, storageBytes: null };
+let usageCache = { at: 0, data: EMPTY_USAGE };
 
-async function getUsagePercent() {
+async function getUsage(force = false) {
   // Cache 10 menit supaya tidak boros kuota Admin API
-  if (Date.now() - usageCache.at < 10 * 60 * 1000) return usageCache.percent;
+  if (!force && Date.now() - usageCache.at < 10 * 60 * 1000) return usageCache.data;
+  let data = EMPTY_USAGE;
   try {
     const u = await cloudinary.api.usage();
-    const pct = u?.credits?.used_percent ?? u?.storage?.used_percent ?? null;
-    usageCache = { at: Date.now(), percent: typeof pct === "number" ? pct : null };
+    const credits = u?.credits || {};
+    const storage = u?.storage || {};
+    const creditPct = typeof credits.used_percent === "number" ? credits.used_percent : null;
+    const storagePct = typeof storage.used_percent === "number" ? storage.used_percent : null;
+    data = {
+      pct: creditPct ?? storagePct,
+      pctFromStorage: creditPct === null && storagePct !== null, // plan non-kredit: persen murni storage
+      // Porsi kredit yang dipakai penyimpanan (sisanya bandwidth/transformasi)
+      share: typeof storage.credits_usage === "number" && credits.usage > 0 ? storage.credits_usage / credits.usage : null,
+      storageBytes: typeof storage.usage === "number" ? storage.usage : null,
+    };
   } catch (err) {
     console.error("Cloudinary usage error:", err?.message || err);
-    usageCache = { at: Date.now(), percent: null };
   }
-  return usageCache.percent;
+  usageCache = { at: Date.now(), data };
+  return data;
+}
+
+// true = penuhnya memang karena penyimpanan → boleh hapus foto lama.
+// unknownMeans = nilai yang dipakai kalau rincian tidak tersedia.
+function storageIsTheProblem(u, unknownMeans) {
+  if (STORAGE_LIMIT_MB && u.storageBytes !== null) return u.storageBytes >= STORAGE_LIMIT_MB * 1024 * 1024;
+  if (u.pct === null) return unknownMeans;
+  if (u.pct < STORAGE_LIMIT_PERCENT) return false;
+  if (u.pctFromStorage) return true;
+  return u.share === null ? unknownMeans : u.share >= STORAGE_SHARE_MIN;
 }
 
 function isQuotaError(err) {
@@ -421,19 +447,27 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     // x-username = pemilik data (admin override sudah dikirim frontend)
     let evicted = 0;
 
-    // 1) Pencegahan: pemakaian sudah di atas ambang → hapus foto paling lama dulu
-    const pct = await getUsagePercent();
-    if (pct !== null && pct >= STORAGE_LIMIT_PERCENT) {
+    // 1) Pencegahan: hapus foto paling lama dulu HANYA kalau penuhnya karena penyimpanan
+    //    (rincian tidak tersedia → jangan hapus duluan, andalkan langkah 2)
+    if (storageIsTheProblem(await getUsage(), false)) {
       evicted += await evictOldestPhotos(user.username);
     }
 
-    // 2) Upload; kalau ditolak karena kuota → hapus foto lama lalu coba sekali lagi
+    // 2) Upload; kalau ditolak karena kuota → cek ulang penyebabnya
     let result;
     try {
       result = await uploadBuffer(compressedBuffer);
     } catch (err) {
       if (!isQuotaError(err)) throw err;
-      console.warn("Cloudinary kuota penuh, menghapus foto lama lalu coba ulang:", err?.message || err);
+      const usage = await getUsage(true);
+      // Rincian tidak tersedia → ikuti flow awal (hapus foto lama lalu coba ulang)
+      if (!storageIsTheProblem(usage, true)) {
+        console.warn("Cloudinary kuota habis bukan karena penyimpanan; foto lama tidak dihapus.", usage);
+        return res.status(507).json({
+          error: "Kuota Cloudinary bulan ini habis (bukan karena penyimpanan), foto belum bisa diupload. Transaksi tetap bisa disimpan tanpa foto.",
+        });
+      }
+      console.warn("Cloudinary penyimpanan penuh, menghapus foto lama lalu coba ulang:", err?.message || err);
       const freed = await evictOldestPhotos(user.username);
       evicted += freed;
       if (!freed) throw err;
